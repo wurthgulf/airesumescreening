@@ -4,16 +4,30 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ScreenForge — AI Resume Screener & ATS</title>
+
+<!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- localForage -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- html2pdf -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- Marked (Markdown Parser) & DOMPurify (Security) -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
 <script>
 tailwind.config = {
   theme: {
     extend: {
-      fontFamily: { outfit: ['Outfit', 'sans-serif'] },
+      fontFamily: { outfit:['Outfit', 'sans-serif'] },
       colors: {
         bg: 'var(--bg)', surface: 'var(--surface)', card: 'var(--card)',
         'card-hover': 'var(--card-hover)', border: 'var(--border)',
@@ -31,8 +45,7 @@ tailwind.config = {
     --border: #243530; --border-light: #2f473c; --fg: #e4ece7; --muted: #7a9488;
     --accent: #10b981; --accent-dim: #0d9668; --accent-glow: #34d399;
     --danger: #ef4444; --warning: #f59e0b; --info: #06b6d4;
-  }
-  [data-theme="light"] {
+  }[data-theme="light"] {
     --bg: #f6f7f6; --surface: #ffffff; --card: #ffffff; --card-hover: #f0f4f2;
     --border: #dde5e1; --border-light: #c5d3cd; --fg: #0f1c17; --muted: #5a7268;
     --accent: #059669; --accent-dim: #047857; --accent-glow: #10b981;
@@ -45,19 +58,19 @@ tailwind.config = {
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
 
-  .orb { position: fixed; border-radius: 50%; pointer-events: none; filter: blur(100px); opacity: .12; z-index: 0; }
-  [data-theme="light"] .orb { opacity: .06; }
+  .orb { position: fixed; border-radius: 50%; pointer-events: none; filter: blur(100px); opacity: .12; z-index: 0; }[data-theme="light"] .orb { opacity: .06; }
   .orb-1 { width: 600px; height: 600px; background: var(--accent); top: -200px; left: -100px; animation: orbFloat1 25s ease-in-out infinite; }
   .orb-2 { width: 400px; height: 400px; background: var(--info); bottom: -100px; right: -100px; animation: orbFloat2 30s ease-in-out infinite; }
-  .orb-3 { width: 300px; height: 300px; background: var(--warning); top: 50%; left: 60%; animation: orbFloat3 20s ease-in-out infinite; opacity: .06; }
-  @keyframes orbFloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(80px,60px)} }
-  @keyframes orbFloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-60px,-80px)} }
-  @keyframes orbFloat3 { 0%,100%{transform:translate(0,0)} 33%{transform:translate(-40px,30px)} 66%{transform:translate(30px,-40px)} }
+  
+  /* Global Dropzone overlay */
+  #globalDropZone { transition: opacity 0.2s, visibility 0.2s; }
+  #globalDropZone.active { opacity: 1; visibility: visible; }
 
   /* Blind Mode */
   body.blind-mode .mask-pii { filter: blur(6px); user-select: none; transition: filter 0.3s; opacity: 0.8; }
   body.blind-mode .mask-pii:hover { filter: blur(2px); }
 
+  /* UI Animations */
   .gauge-ring { transition: stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1); }
   .gauge-glow { filter: blur(8px); opacity: .4; }
   .result-animate { opacity: 0; transform: translateY(24px); animation: fadeSlideUp .6s ease forwards; }
@@ -66,25 +79,25 @@ tailwind.config = {
   @keyframes scanDown { 0%{top:0;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{top:100%;opacity:0} }
   .pulse-ring { animation: pulseRing 1.5s ease-out infinite; }
   @keyframes pulseRing { 0%{transform:scale(.8);opacity:.6} 100%{transform:scale(1.4);opacity:0} }
+  
   .drop-zone { transition: all .3s ease; }
   .drop-zone.dragover { border-color: var(--accent) !important; background: rgba(16,185,129,.08) !important; }
-  .drop-zone.dragover .drop-icon { transform: scale(1.15); color: var(--accent); }
+  
   .toast-enter { animation: toastIn .4s ease forwards; }
   .toast-exit { animation: toastOut .3s ease forwards; }
   @keyframes toastIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
   @keyframes toastOut { from{transform:translateX(0);opacity:1} to{transform:translateX(100%);opacity:0} }
-  .btn-glow { position: relative; overflow: hidden; box-shadow: 0 0 20px rgba(16,185,129,.15); transition: all .3s ease; }
-  .btn-glow:hover:not(:disabled) { box-shadow: 0 0 30px rgba(16,185,129,.3); transform: translateY(-1px); }
-  .btn-glow:active:not(:disabled) { transform: translateY(0); }
+  
   textarea:focus, input:focus, select:focus { outline: none; border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
-  .nav-tab { transition: all .2s; position: relative; }
-  .nav-tab::after { content: ''; position: absolute; bottom: -17px; left: 0; width: 100%; height: 2px; background: var(--accent); transform: scaleX(0); transition: transform .3s ease; }
-  .nav-tab.active { color: var(--fg); } .nav-tab.active::after { transform: scaleX(1); }
-  .badge-pulse { animation: badgePulse 2s ease-in-out infinite; }
-  @keyframes badgePulse { 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.3)} 50%{box-shadow:0 0 0 8px rgba(16,185,129,0)} }
+  
+  /* Tabs */
+  .nav-tab, .modal-tab { transition: all .2s; position: relative; }
+  .nav-tab::after, .modal-tab::after { content: ''; position: absolute; bottom: -17px; left: 0; width: 100%; height: 2px; background: var(--accent); transform: scaleX(0); transition: transform .3s ease; }
+  .modal-tab::after { bottom: -2px; }
+  .nav-tab.active, .modal-tab.active { color: var(--fg); font-weight: 600; } 
+  .nav-tab.active::after, .modal-tab.active::after { transform: scaleX(1); }
 
   /* Pipeline */
-  .pipeline-column { transition: all .2s; }
   .pipeline-dropzone { transition: all .2s; min-height: 120px; }
   .pipeline-dropzone.drag-over { border-color: var(--accent) !important; background: rgba(16,185,129,.06) !important; }
   .candidate-card { transition: all .2s; cursor: grab; }
@@ -93,35 +106,36 @@ tailwind.config = {
 
   /* Tags */
   .tag-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 11px; color: var(--muted); }
-  .tag-pill button:hover { color: var(--danger); }
-  .tag-suggestion { cursor: pointer; }
-  .tag-suggestion:hover { background: var(--card-hover); color: var(--fg); }
+  
+  /* Markdown Content Styles */
+  .markdown-content h1, .markdown-content h2, .markdown-content h3 { color: var(--fg); font-weight: bold; margin-bottom: 0.5rem; margin-top: 1rem; }
+  .markdown-content h1 { font-size: 1.25rem; } .markdown-content h2 { font-size: 1.1rem; }
+  .markdown-content p { margin-bottom: 0.75rem; }
+  .markdown-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 0.75rem; }
+  .markdown-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 0.75rem; }
+  .markdown-content a { color: var(--accent); text-decoration: underline; }
+  .markdown-content code { background: var(--surface); padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.9em; border: 1px solid var(--border); }
 
-  /* Charts */
-  .chart-container { position: relative; width: 100%; height: 220px; }
-
-  /* Print / PDF report */
-  @media print {
-    body { background: #fff !important; color: #111 !important; }
-    .no-print { display: none !important; }
-    .print-only { display: block !important; }
-  }
-  .print-only { display: none; }
-
-  /* Modal transitions */
+  /* Modals */
   .modal-enter { animation: modalIn .3s ease forwards; }
   @keyframes modalIn { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-  }
+  
+  /* Chat Bot */
+  #pipelineChat.open { display: flex; animation: chatIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; transform-origin: bottom right; }
+  @keyframes chatIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
 </style>
 </head>
 <body class="min-h-screen font-outfit">
 
 <div class="orb orb-1" aria-hidden="true"></div>
 <div class="orb orb-2" aria-hidden="true"></div>
-<div class="orb orb-3" aria-hidden="true"></div>
+
+<!-- Global Dropzone -->
+<div id="globalDropZone" class="fixed inset-0 z-[100] invisible opacity-0 bg-bg/90 backdrop-blur-md flex flex-col items-center justify-center border-4 border-dashed border-accent m-4 rounded-3xl pointer-events-none">
+    <i class="fa-solid fa-cloud-arrow-up text-6xl text-accent mb-4 animate-bounce"></i>
+    <h2 class="text-3xl font-bold text-fg">Drop resumes anywhere to parse</h2>
+    <p class="text-muted mt-2">Files will be added to the batch queue</p>
+</div>
 
 <div id="toastContainer" class="fixed top-6 right-6 z-50 flex flex-col gap-3 pointer-events-none" aria-live="polite"></div>
 
@@ -129,7 +143,7 @@ tailwind.config = {
 
 <!-- Candidate Detail Modal -->
 <div id="candidateModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
-  <div class="bg-card border border-border rounded-2xl w-full max-w-3xl mx-4 shadow-2xl flex flex-col max-h-[92vh] modal-enter">
+  <div class="bg-card border border-border rounded-2xl w-full max-w-4xl mx-4 shadow-2xl flex flex-col max-h-[92vh] modal-enter">
     <div class="flex items-center justify-between p-5 border-b border-border/50">
       <div class="flex items-center gap-3">
         <div id="candModalBadge" class="w-10 h-10 rounded-full border flex items-center justify-center text-sm font-bold"></div>
@@ -138,141 +152,131 @@ tailwind.config = {
           <p id="candModalJob" class="text-xs text-muted"></p>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <select id="candModalStage" class="bg-surface border border-border rounded-lg px-2 py-1.5 text-xs text-fg cursor-pointer"></select>
-        <button onclick="closeCandidateModal()" class="text-muted hover:text-fg p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+      <div class="flex items-center gap-4">
+        <select id="candModalStage" class="bg-surface border border-border rounded-lg px-3 py-1.5 text-xs text-fg cursor-pointer font-medium"></select>
+        <button onclick="closeCandidateModal()" class="text-muted hover:text-fg p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
       </div>
     </div>
-    <div class="p-6 overflow-y-auto flex-1 space-y-6">
-      
-      <!-- Tags & Quick Actions Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Tags</label>
-          <div id="candModalTags" class="flex flex-wrap gap-1.5 mb-2"></div>
-          <div class="relative">
-            <input id="candTagInput" type="text" placeholder="Add tag..." class="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/50">
-            <div id="candTagSuggestions" class="absolute z-10 w-full bg-card border border-border rounded-lg mt-1 hidden max-h-32 overflow-y-auto"></div>
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Recruiter Notes</label>
-          <textarea id="candModalNotes" rows="3" placeholder="Private notes about this candidate..." class="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-fg placeholder:text-muted/40 resize-y leading-relaxed"></textarea>
-        </div>
-      </div>
+    
+    <!-- Modal Tabs -->
+    <div class="flex border-b border-border px-6 gap-6 bg-surface/30">
+        <button class="modal-tab active py-3 text-sm text-muted hover:text-fg" data-tab="tab-overview">Overview</button>
+        <button class="modal-tab py-3 text-sm text-muted hover:text-fg" data-tab="tab-resume">Resume Viewer</button>
+        <button class="modal-tab py-3 text-sm text-muted hover:text-fg" data-tab="tab-notes">Notes & Actions</button>
+    </div>
 
-      <!-- Analysis Summary -->
-      <div class="bg-surface/60 border border-border/50 rounded-xl p-4">
-        <h3 class="text-sm font-semibold text-fg mb-2">AI Summary</h3>
-        <p id="candModalSummary" class="text-sm text-muted leading-relaxed"></p>
-      </div>
-      
-      <!-- Skills -->
-      <div id="candModalSkillsWrap" class="hidden">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold text-fg">Skills Audit</h3>
-            <button onclick="generateUpskillPlan()" class="text-xs text-info hover:underline"><i class="fa-solid fa-graduation-cap mr-1"></i>Upskill Plan</button>
-        </div>
-        <div id="candModalMatched" class="flex flex-wrap gap-1 mb-2"></div>
-        <div id="candModalMissing" class="flex flex-wrap gap-1"></div>
-        <div id="upskillPlanResult" class="hidden mt-3 p-3 bg-surface border border-border rounded-lg text-sm text-muted whitespace-pre-line leading-relaxed"></div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Interview -->
-          <div id="candModalInterviewWrap">
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-semibold text-fg">Interview Questions</h3>
-              <button onclick="generateInterviewForCandidate()" class="text-xs text-accent hover:underline">Generate</button>
+    <div class="p-6 overflow-y-auto flex-1 bg-bg/30">
+        
+      <!-- TAB: OVERVIEW -->
+      <div id="tab-overview" class="modal-tab-content space-y-6">
+        <!-- Tags & Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="col-span-1 border-r border-border/50 pr-4">
+                <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Tags</label>
+                <div id="candModalTags" class="flex flex-wrap gap-1.5 mb-3"></div>
+                <div class="relative">
+                    <input id="candTagInput" type="text" placeholder="Add tag..." class="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/50">
+                    <div id="candTagSuggestions" class="absolute z-10 w-full bg-card border border-border rounded-lg mt-1 hidden max-h-32 overflow-y-auto shadow-xl"></div>
+                </div>
             </div>
-            <div id="candModalInterview" class="space-y-2"></div>
-          </div>
-          
-          <!-- Bias Audit -->
-          <div id="candModalBiasWrap">
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-semibold text-fg">Bias & Fairness Audit</h3>
-              <button onclick="runBiasAuditForCandidate()" class="text-xs text-accent hover:underline">Run Audit</button>
+            <div class="col-span-2">
+                <h3 class="text-sm font-semibold text-fg mb-2">AI Summary</h3>
+                <p id="candModalSummary" class="text-sm text-muted leading-relaxed"></p>
             </div>
-            <div id="candModalBias" class="hidden space-y-2"></div>
-          </div>
+        </div>
+
+        <!-- Ask AI Chat -->
+        <div class="bg-card/50 border border-border rounded-xl p-4 relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-accent/5 to-info/5 pointer-events-none"></div>
+            <h3 class="text-sm font-semibold text-fg mb-2 flex items-center gap-2 relative z-10"><i class="fa-solid fa-sparkles text-accent"></i> Ask AI about Candidate</h3>
+            <div class="flex gap-2 relative z-10">
+                <input type="text" id="aiQuestionInput" placeholder="e.g. Do they have AWS migration experience?" class="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/50">
+                <button id="askAiBtn" class="bg-accent/10 border border-accent/20 text-accent px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent hover:text-bg transition-colors">Ask</button>
+            </div>
+            <div id="aiAnswerOutput" class="hidden mt-3 p-3 bg-surface border border-border/50 rounded-lg text-sm text-fg leading-relaxed relative z-10"></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div id="candModalSkillsWrap" class="hidden bg-surface/40 p-4 rounded-xl border border-border/50">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-fg">Skills Audit</h3>
+                    <button onclick="generateUpskillPlan()" class="text-xs text-info hover:underline"><i class="fa-solid fa-graduation-cap mr-1"></i>Upskill Plan</button>
+                </div>
+                <div id="candModalMatched" class="flex flex-wrap gap-1 mb-3"></div>
+                <div id="candModalMissing" class="flex flex-wrap gap-1"></div>
+                <div id="upskillPlanResult" class="hidden mt-3 p-3 bg-surface border border-border rounded-lg text-sm text-muted whitespace-pre-line leading-relaxed"></div>
+            </div>
+            <div id="candModalInterviewWrap" class="bg-surface/40 p-4 rounded-xl border border-border/50">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-fg">Recommended Questions</h3>
+                    <button onclick="generateInterviewForCandidate()" class="text-xs text-accent hover:underline">Regenerate</button>
+                </div>
+                <div id="candModalInterview" class="space-y-2"></div>
+            </div>
+        </div>
       </div>
 
-      <!-- Outreach Generator -->
-      <div id="candModalOutreachWrap" class="border-t border-border/50 pt-5">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-semibold text-fg flex items-center gap-2"><i class="fa-solid fa-envelope text-accent/60"></i> AI Outreach Drafts</h3>
-          <div class="flex gap-2">
-            <button onclick="generateEmail('interview')" class="text-xs px-2.5 py-1 bg-surface border border-border rounded hover:border-accent hover:text-accent transition-colors">Invites</button>
-            <button onclick="generateEmail('reject')" class="text-xs px-2.5 py-1 bg-surface border border-border rounded hover:border-danger hover:text-danger transition-colors">Rejection</button>
-          </div>
+      <!-- TAB: RESUME VIEWER -->
+      <div id="tab-resume" class="modal-tab-content hidden h-full flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex bg-surface border border-border rounded-lg p-1">
+                <button id="viewOriginalBtn" class="px-4 py-1.5 text-xs font-semibold rounded-md bg-card text-fg shadow-sm transition-all">Original Text</button>
+                <button id="viewRedactedBtn" class="px-4 py-1.5 text-xs font-medium rounded-md text-muted hover:text-fg transition-all">Redacted (Blind)</button>
+            </div>
+            <button id="redactResumeBtn" class="px-3 py-1.5 bg-info/10 text-info border border-info/20 rounded-lg text-xs hover:bg-info hover:text-white transition-colors"><i class="fa-solid fa-user-secret mr-1.5"></i>Redact PII via AI</button>
         </div>
-        <div id="outreachResult" class="hidden relative">
-          <textarea id="outreachText" rows="4" class="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-fg mb-1 leading-relaxed"></textarea>
-          <button onclick="copyOutreach()" class="absolute right-3 top-3 text-xs text-accent bg-surface px-2 py-1 border border-border rounded hover:bg-card"><i class="fa-solid fa-copy mr-1"></i>Copy</button>
+        <div class="flex-1 bg-surface border border-border rounded-xl p-5 overflow-y-auto whitespace-pre-wrap text-sm text-muted font-mono leading-relaxed" id="resumeViewerContent" style="min-height: 300px;">
         </div>
       </div>
 
-      <!-- Timeline -->
-      <div id="candModalTimelineWrap" class="border-t border-border/50 pt-5">
-        <h3 class="text-sm font-semibold text-fg mb-3 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-accent/60"></i> Timeline</h3>
-        <div id="candModalTimeline" class="space-y-3 relative border-l-2 border-surface ml-2 pl-4 pb-2"></div>
+      <!-- TAB: NOTES & ACTIONS -->
+      <div id="tab-notes" class="modal-tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Notes -->
+            <div class="flex flex-col h-full">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-xs font-semibold text-muted uppercase tracking-wider">Recruiter Notes</label>
+                    <div class="flex gap-2">
+                        <button id="noteWriteBtn" class="text-xs font-semibold text-accent">Write</button>
+                        <button id="notePreviewBtn" class="text-xs font-medium text-muted hover:text-fg">Preview</button>
+                    </div>
+                </div>
+                <textarea id="candModalNotes" rows="10" placeholder="Use markdown (**bold**, - list) for notes..." class="w-full flex-1 bg-surface border border-border rounded-xl px-4 py-3 text-sm text-fg placeholder:text-muted/40 resize-y leading-relaxed font-mono"></textarea>
+                <div id="candModalNotesPreview" class="hidden w-full flex-1 bg-surface border border-border rounded-xl px-4 py-3 text-sm text-fg leading-relaxed markdown-content overflow-y-auto" style="min-height: 200px;"></div>
+            </div>
+
+            <!-- Outreach & Timeline -->
+            <div class="flex flex-col gap-6">
+                <div class="bg-surface/40 border border-border/50 rounded-xl p-5">
+                    <h3 class="text-sm font-semibold text-fg flex items-center gap-2 mb-4"><i class="fa-solid fa-envelope text-accent/60"></i> AI Email Generation</h3>
+                    <div class="flex gap-2 flex-wrap mb-4">
+                        <button onclick="generateEmail('interview')" class="text-xs px-3 py-1.5 bg-surface border border-border rounded hover:border-accent hover:text-accent transition-colors">Invite</button>
+                        <button onclick="generateEmail('reject')" class="text-xs px-3 py-1.5 bg-surface border border-border rounded hover:border-danger hover:text-danger transition-colors">Reject</button>
+                        <button onclick="generateEmail('reference')" class="text-xs px-3 py-1.5 bg-surface border border-border rounded hover:border-info hover:text-info transition-colors" title="Draft email to references based on weaknesses">Ref Check</button>
+                    </div>
+                    <div id="outreachResult" class="hidden relative">
+                        <textarea id="outreachText" rows="6" class="w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-fg mb-1 leading-relaxed font-mono"></textarea>
+                        <button onclick="copyOutreach()" class="absolute right-3 top-3 text-xs text-bg bg-accent px-2 py-1 rounded hover:opacity-80"><i class="fa-solid fa-copy mr-1"></i>Copy</button>
+                    </div>
+                </div>
+
+                <div class="bg-surface/40 border border-border/50 rounded-xl p-5 flex-1">
+                    <h3 class="text-sm font-semibold text-fg mb-4 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-accent/60"></i> History Timeline</h3>
+                    <div id="candModalTimeline" class="space-y-4 relative border-l-2 border-border ml-2 pl-4 pb-2"></div>
+                </div>
+            </div>
+        </div>
       </div>
 
     </div>
-    <div class="p-5 border-t border-border/50 bg-surface/50 flex gap-2 rounded-b-2xl flex-wrap">
+    
+    <div class="p-5 border-t border-border/50 bg-card flex gap-2 rounded-b-2xl flex-wrap">
       <button onclick="exportCandidateReport('json')" class="px-3 py-2 bg-surface border border-border rounded-lg text-xs text-muted hover:text-fg hover:border-border-light transition-all"><i class="fa-solid fa-download mr-1"></i>JSON</button>
       <button onclick="exportCandidateReport('md')" class="px-3 py-2 bg-surface border border-border rounded-lg text-xs text-muted hover:text-fg hover:border-border-light transition-all"><i class="fa-brands fa-markdown mr-1"></i>MD</button>
       <button onclick="exportCandidateReport('pdf')" class="px-3 py-2 bg-surface border border-border rounded-lg text-xs text-muted hover:text-fg hover:border-border-light transition-all"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>
       <div class="flex-1"></div>
-      <button onclick="reScoreCandidate()" class="px-3 py-2 bg-info/10 text-info border border-info/20 rounded-lg text-xs hover:bg-info hover:text-white transition-colors"><i class="fa-solid fa-rotate mr-1"></i>Re-score</button>
-      <button onclick="deleteCandidate()" class="px-3 py-2 bg-danger/10 text-danger border border-danger/20 rounded-lg text-xs hover:bg-danger hover:text-white transition-colors"><i class="fa-solid fa-trash mr-1"></i>Delete</button>
+      <button onclick="deleteCandidate()" class="px-4 py-2 bg-danger/10 text-danger border border-danger/20 rounded-lg text-xs font-semibold hover:bg-danger hover:text-white transition-colors"><i class="fa-solid fa-trash mr-1.5"></i>Delete</button>
     </div>
-  </div>
-</div>
-
-<!-- Export Modal -->
-<div id="exportModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
-  <div class="bg-card border border-border rounded-2xl w-full max-w-lg mx-4 shadow-2xl flex flex-col max-h-[90vh] modal-enter">
-    <div class="flex items-center justify-between p-5 border-b border-border/50">
-      <h2 class="text-lg font-semibold text-fg"><i class="fa-solid fa-file-export text-accent mr-2"></i>Export Data</h2>
-      <button onclick="closeExportModal()" class="text-muted hover:text-fg p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
-    </div>
-    <div class="p-6 space-y-4 overflow-y-auto flex-1">
-      <div class="grid grid-cols-2 gap-3">
-        <button onclick="exportAll('json')" class="p-4 bg-surface border border-border rounded-xl text-left hover:border-border-light transition-all">
-          <i class="fa-solid fa-file-code text-accent text-xl mb-2 block"></i>
-          <span class="text-sm font-medium text-fg">JSON</span>
-          <p class="text-[11px] text-muted mt-1">Raw analysis data</p>
-        </button>
-        <button onclick="exportAll('csv')" class="p-4 bg-surface border border-border rounded-xl text-left hover:border-border-light transition-all">
-          <i class="fa-solid fa-file-csv text-info text-xl mb-2 block"></i>
-          <span class="text-sm font-medium text-fg">CSV</span>
-          <p class="text-[11px] text-muted mt-1">Spreadsheet format</p>
-        </button>
-        <button onclick="exportAll('md')" class="p-4 bg-surface border border-border rounded-xl text-left hover:border-border-light transition-all">
-          <i class="fa-brands fa-markdown text-warning text-xl mb-2 block"></i>
-          <span class="text-sm font-medium text-fg">Markdown</span>
-          <p class="text-[11px] text-muted mt-1">Human-readable reports</p>
-        </button>
-        <button onclick="exportAll('pipeline_csv')" class="p-4 bg-surface border border-border rounded-xl text-left hover:border-border-light transition-all">
-          <i class="fa-solid fa-table-columns text-accent text-xl mb-2 block"></i>
-          <span class="text-sm font-medium text-fg">Pipeline CSV</span>
-          <p class="text-[11px] text-muted mt-1">Kanban stage export</p>
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Comparison Modal -->
-<div id="comparisonModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
-  <div class="bg-card border border-border rounded-2xl w-full max-w-5xl mx-4 shadow-2xl flex flex-col max-h-[90vh]">
-    <div class="flex items-center justify-between p-5 border-b border-border/50">
-      <h2 class="text-lg font-semibold text-fg flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-accent"></i> Candidate Comparison</h2>
-      <button onclick="closeComparison()" class="text-muted hover:text-fg p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
-    </div>
-    <div class="p-6 overflow-y-auto flex-1"><div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="border-b border-border"><th class="pb-3 text-xs font-semibold text-muted uppercase">Candidate</th><th class="pb-3 text-xs font-semibold text-muted uppercase text-center">Score</th><th class="pb-3 text-xs font-semibold text-muted uppercase text-center">ATS</th><th class="pb-3 text-xs font-semibold text-muted uppercase text-center">Skills</th><th class="pb-3 text-xs font-semibold text-muted uppercase text-center">Exp.</th><th class="pb-3 text-xs font-semibold text-muted uppercase text-center">Edu.</th><th class="pb-3 text-xs font-semibold text-muted uppercase text-center">Culture</th><th class="pb-3 text-xs font-semibold text-muted uppercase">Verdict</th></tr></thead><tbody id="comparisonTableBody"></tbody></table></div></div>
   </div>
 </div>
 
@@ -284,6 +288,7 @@ tailwind.config = {
       <button id="closeSettingsModal" class="text-muted hover:text-fg p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
     <div class="p-6 overflow-y-auto flex-1 space-y-6">
+      <!-- API Settings -->
       <div>
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">API Provider</label>
         <select id="providerSelect" class="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-fg cursor-pointer">
@@ -293,7 +298,6 @@ tailwind.config = {
       <div>
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Endpoint URL</label>
         <input id="baseUrlInput" type="text" placeholder="https://api.example.com/v1/chat/completions" class="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-fg placeholder:text-muted/50">
-        <p id="ollamaWarning" class="text-[11px] text-warning mt-1.5 hidden"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Ensure Ollama runs with <code class="bg-surface px-1 py-0.5 rounded">OLLAMA_ORIGINS="*"</code> to allow browser access.</p>
       </div>
       <div>
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">API Key (if required)</label>
@@ -306,6 +310,18 @@ tailwind.config = {
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">AI Model</label>
         <select id="modelSelect" class="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-fg cursor-pointer mb-2"></select>
         <input id="customModelInput" type="text" placeholder="Enter custom model tag" class="w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-fg placeholder:text-muted/50 hidden">
+      </div>
+
+      <!-- GDPR Compliance -->
+      <div class="border-t border-border/50 pt-5">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Data Privacy & GDPR</h3>
+        <label class="block text-sm text-muted mb-2">Auto-purge candidate data older than:</label>
+        <select id="gdprSelect" class="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg cursor-pointer">
+          <option value="0">Never (Keep Forever)</option>
+          <option value="30">30 Days</option>
+          <option value="60">60 Days</option>
+          <option value="90">90 Days</option>
+        </select>
       </div>
 
       <!-- Feature Flags -->
@@ -333,7 +349,7 @@ tailwind.config = {
 
 <!-- ================= HEADER ================= -->
 <header class="border-b border-border/60 backdrop-blur-xl bg-surface/80 sticky top-0 z-40">
-  <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4 flex-wrap">
+  <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
     <div class="flex items-center gap-8">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent-dim flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
@@ -341,21 +357,27 @@ tailwind.config = {
         </div>
         <div>
           <h1 class="text-xl font-bold tracking-tight text-fg">ScreenForge</h1>
-          <p class="text-xs text-muted -mt-0.5">AI-Powered ATS</p>
         </div>
       </div>
-      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-muted h-full border-l border-border pl-8">
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-muted h-full border-l border-border pl-8 py-1">
         <button class="nav-tab active hover:text-fg" data-target="view-screener"><i class="fa-solid fa-microchip mr-1.5"></i>Screener</button>
         <button class="nav-tab hover:text-fg" data-target="view-pipeline"><i class="fa-solid fa-table-columns mr-1.5"></i>Pipeline</button>
         <button class="nav-tab hover:text-fg" data-target="view-dashboard"><i class="fa-solid fa-chart-pie mr-1.5"></i>Dashboard</button>
       </nav>
     </div>
     <div class="flex items-center gap-3 flex-wrap">
+      
+      <!-- Global Job Filter -->
+      <div class="hidden md:flex items-center bg-card border border-border rounded-lg overflow-hidden">
+        <div class="px-3 py-1.5 bg-surface border-r border-border text-xs text-muted"><i class="fa-solid fa-briefcase mr-1.5"></i>Context</div>
+        <select id="globalJobFilter" class="bg-transparent border-none text-xs text-fg px-3 py-1.5 cursor-pointer outline-none focus:ring-0 max-w-[150px] truncate">
+            <option value="all">All Jobs</option>
+        </select>
+      </div>
+
       <button id="blindModeToggle" class="w-9 h-9 rounded-lg bg-card border border-border flex items-center justify-center text-muted hover:text-fg hover:border-border-light transition-all" aria-label="Toggle blind mode" title="Blind Screening Mode"><i class="fa-solid fa-eye-slash text-xs"></i></button>
       <button id="themeToggle" class="w-9 h-9 rounded-lg bg-card border border-border flex items-center justify-center text-muted hover:text-fg hover:border-border-light transition-all" aria-label="Toggle theme"><i class="fa-solid fa-sun text-xs"></i></button>
-      <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded-lg text-xs"><span class="text-muted">Provider:</span><span id="activeProviderDisplay" class="text-accent font-semibold">OpenRouter</span></div>
-      <button id="exportDataBtn" class="hidden md:flex items-center gap-2 bg-card border border-border rounded-lg px-4 py-2 text-sm text-muted hover:text-fg hover:border-border-light transition-all"><i class="fa-solid fa-file-export text-xs"></i><span>Export</span></button>
-      <button id="settingsToggle" class="flex items-center gap-2 bg-card border border-border rounded-lg px-4 py-2 text-sm text-muted hover:text-fg hover:border-border-light transition-all"><i class="fa-solid fa-sliders text-xs"></i><span>Settings</span></button>
+      <button id="settingsToggle" class="flex items-center gap-2 bg-card border border-border rounded-lg px-4 py-2 text-sm text-muted hover:text-fg hover:border-border-light transition-all"><i class="fa-solid fa-sliders text-xs"></i><span class="hidden sm:inline">Settings</span></button>
     </div>
   </div>
 </header>
@@ -366,21 +388,31 @@ tailwind.config = {
 <!-- VIEW: SCREENER -->
 <main id="view-screener" class="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6 view-section">
   <div class="flex flex-col gap-5">
+    
+    <!-- Job Requisition Section -->
     <section class="bg-card/80 backdrop-blur border border-border rounded-2xl p-5">
-      <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center"><i class="fa-solid fa-briefcase text-accent text-sm"></i></div><h2 class="font-semibold text-fg">Job Description</h2></div>
-        <div class="flex items-center gap-3">
-          <button id="generateBooleanBtn" class="text-xs text-muted hover:text-info transition-colors hidden"><i class="fa-solid fa-magnifying-glass mr-1"></i>Gen Boolean</button>
-          <button id="loadSampleJob" class="text-xs text-muted hover:text-accent transition-colors">Load Sample</button>
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center"><i class="fa-solid fa-briefcase text-accent text-sm"></i></div><h2 class="font-semibold text-fg">Job Requisition</h2></div>
+        <div class="flex items-center gap-2">
+            <select id="screenerJobSelect" class="bg-surface border border-border rounded-lg px-3 py-1.5 text-xs text-fg cursor-pointer max-w-[200px] truncate"></select>
+            <button id="createNewJobBtn" class="text-xs px-2.5 py-1.5 bg-accent/10 text-accent border border-accent/20 rounded hover:bg-accent hover:text-bg transition-colors"><i class="fa-solid fa-plus mr-1"></i>New Job</button>
         </div>
       </div>
-      <textarea id="jobDescription" rows="6" placeholder="Paste the job description here..." class="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-fg placeholder:text-muted/40 resize-y leading-relaxed"></textarea>
-      <div class="flex justify-end mt-1.5"><span id="jobCharCount" class="text-xs text-muted/50">0 chars</span></div>
-    </section>
+      
+      <!-- New Job Form (Hidden by default) -->
+      <div id="newJobForm" class="hidden mb-4 p-3 bg-surface border border-border rounded-xl space-y-3">
+          <input type="text" id="newJobTitle" placeholder="e.g. Senior Backend Engineer" class="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-fg">
+          <div class="flex justify-end gap-2">
+              <button id="cancelNewJobBtn" class="text-xs px-3 py-1.5 text-muted hover:text-fg">Cancel</button>
+              <button id="saveNewJobBtn" class="text-xs px-3 py-1.5 bg-accent text-bg rounded font-semibold">Save & Select</button>
+          </div>
+      </div>
 
-    <section class="bg-card/80 backdrop-blur border border-border rounded-2xl p-5" id="coverLetterSection">
-      <div class="flex items-center gap-2 mb-3"><div class="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center"><i class="fa-solid fa-envelope-open-text text-info text-sm"></i></div><h2 class="font-semibold text-fg">Cover Letter <span class="text-xs font-normal text-muted/60">(Optional)</span></h2></div>
-      <textarea id="coverLetter" rows="4" placeholder="Paste cover letter for culture/motivation analysis..." class="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-fg placeholder:text-muted/40 resize-y leading-relaxed"></textarea>
+      <textarea id="jobDescription" rows="5" placeholder="Select a job above or paste the job description here..." class="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-fg placeholder:text-muted/40 resize-y leading-relaxed"></textarea>
+      <div class="flex justify-between items-center mt-2">
+          <button id="generateBooleanBtn" class="text-xs text-muted hover:text-info transition-colors hidden"><i class="fa-solid fa-magnifying-glass mr-1"></i>Gen Boolean Search</button>
+          <span id="jobCharCount" class="text-xs text-muted/50 ml-auto">0 chars</span>
+      </div>
     </section>
 
     <section class="bg-card/80 backdrop-blur border border-border rounded-2xl p-5">
@@ -388,18 +420,16 @@ tailwind.config = {
         <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center"><i class="fa-solid fa-file-lines text-warning text-sm"></i></div><h2 class="font-semibold text-fg">Resume</h2></div>
         <div class="flex items-center gap-2">
           <label class="flex items-center gap-1.5 text-xs text-muted cursor-pointer select-none"><input type="checkbox" id="batchMode" class="rounded border-border bg-surface text-accent focus:ring-0">Batch Mode</label>
-          <button id="loadSampleResume" class="text-xs text-muted hover:text-accent transition-colors">Load Sample</button>
         </div>
       </div>
       <div id="dropZone" class="drop-zone border-2 border-dashed border-border rounded-xl p-6 text-center mb-3 cursor-pointer" role="button" tabindex="0">
         <i class="fa-solid fa-cloud-arrow-up drop-icon text-3xl text-muted/40 mb-2 block transition-transform"></i>
         <p class="text-sm text-muted/60" id="dropText">Drop <span class="text-fg/60 font-medium">.txt</span> or <span class="text-fg/60 font-medium">.pdf</span> here, or click to browse</p>
-        <p id="fileName" class="text-xs text-accent mt-1.5 hidden"></p>
         <input id="fileInput" type="file" accept=".txt,.pdf" class="hidden">
       </div>
-      <div id="batchQueue" class="hidden space-y-2 mb-3"></div>
+      <div id="batchQueue" class="hidden space-y-2 mb-3 max-h-[150px] overflow-y-auto pr-1"></div>
       <div class="flex items-center gap-3 mb-3"><div class="flex-1 h-px bg-border"></div><span class="text-xs text-muted/40 uppercase tracking-wider">or paste text</span><div class="flex-1 h-px bg-border"></div></div>
-      <textarea id="resumeText" rows="8" placeholder="Paste resume content here..." class="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-fg placeholder:text-muted/40 resize-y leading-relaxed"></textarea>
+      <textarea id="resumeText" rows="6" placeholder="Paste resume content here..." class="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-fg placeholder:text-muted/40 resize-y leading-relaxed"></textarea>
       <div class="flex justify-end mt-1.5"><span id="resumeCharCount" class="text-xs text-muted/50">0 chars</span></div>
     </section>
 
@@ -411,16 +441,22 @@ tailwind.config = {
   <div class="flex flex-col gap-5">
     <div id="emptyState" class="bg-card/50 backdrop-blur border border-border rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[500px] h-full">
       <div class="w-20 h-20 rounded-2xl bg-surface border border-border flex items-center justify-center mb-5"><i class="fa-solid fa-magnifying-glass-chart text-3xl text-muted/30"></i></div>
-      <h3 class="text-lg font-semibold text-muted/50 mb-2">No Analysis Yet</h3>
-      <p class="text-sm text-muted/30 max-w-xs leading-relaxed">Configure your AI provider, paste a job description and resume, then hit analyze.</p>
+      <h3 class="text-lg font-semibold text-muted/50 mb-2">Ready to Analyze</h3>
+      <p class="text-sm text-muted/30 max-w-xs leading-relaxed">Select a Job Requisition, upload a candidate resume, and initiate AI screening.</p>
     </div>
+    
     <div id="loadingState" class="hidden bg-card/80 backdrop-blur border border-border rounded-2xl overflow-hidden min-h-[500px] h-full relative flex flex-col items-center justify-center">
       <div class="scanner-line"></div>
       <div class="relative mb-6"><div class="w-16 h-16 rounded-full border-2 border-accent/20 flex items-center justify-center"><div class="w-10 h-10 rounded-full border-2 border-accent border-t-transparent animate-spin"></div></div><div class="absolute inset-0 rounded-full border-2 border-accent/30 pulse-ring"></div></div>
       <p class="text-fg font-medium mb-1">Analyzing Resume</p>
-      <p id="loadingStatus" class="text-sm text-muted">Connecting to AI...</p>
-      <p id="batchProgress" class="text-xs text-muted/60 mt-2 hidden"></p>
+      <p id="loadingStatus" class="text-sm text-muted text-center max-w-[250px] truncate">Connecting to AI...</p>
+      <div id="batchProgressWrap" class="hidden w-64 mt-4">
+          <div class="flex justify-between text-xs text-muted mb-1"><span id="batchProgressText">0 / 0</span><span>Progress</span></div>
+          <div class="w-full bg-surface rounded-full h-1.5"><div id="batchProgressBar" class="bg-accent h-1.5 rounded-full transition-all" style="width:0%"></div></div>
+      </div>
+      <button id="cancelAnalyzeBtn" class="mt-8 px-4 py-2 bg-surface border border-border rounded-lg text-xs text-muted hover:text-danger hover:border-danger transition-colors z-10 relative">Cancel</button>
     </div>
+    
     <div id="resultsPanel" class="hidden flex flex-col gap-5">
       <section class="result-animate bg-card/80 backdrop-blur border border-border rounded-2xl p-6 flex items-center gap-6 flex-wrap">
         <div class="relative flex-shrink-0">
@@ -437,40 +473,20 @@ tailwind.config = {
           <p id="summaryText" class="text-sm text-muted leading-relaxed"></p>
         </div>
       </section>
-      <section id="atsSection" class="result-animate bg-card/80 backdrop-blur border border-border rounded-2xl p-5">
-        <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-semibold text-fg flex items-center gap-2"><i class="fa-solid fa-robot text-accent/60 text-xs"></i> ATS Compatibility</h3><span id="atsScore" class="text-lg font-bold"></span></div>
-        <div class="w-full h-2 bg-surface rounded-full overflow-hidden mb-3"><div id="atsBar" class="h-full rounded-full transition-all duration-1000" style="width:0%"></div></div>
-        <ul id="atsIssues" class="space-y-1.5"></ul>
-      </section>
+      
       <section class="result-animate bg-card/80 backdrop-blur border border-border rounded-2xl p-5">
         <h3 class="text-sm font-semibold text-fg mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-bar text-accent/60 text-xs"></i> Category Breakdown</h3>
         <div id="categoriesContainer" class="space-y-4"></div>
       </section>
-      <section id="skillsSection" class="result-animate bg-card/80 backdrop-blur border border-border rounded-2xl p-5 hidden">
-        <h3 class="text-sm font-semibold text-fg mb-4 flex items-center gap-2"><i class="fa-solid fa-puzzle-piece text-accent/60 text-xs"></i> Skills Analysis</h3>
-        <div id="matchedSkills" class="mb-3"></div><div id="missingSkills"></div>
-      </section>
+
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <section class="result-animate bg-card/80 backdrop-blur border border-border rounded-2xl p-5"><h3 class="text-sm font-semibold text-fg mb-3 flex items-center gap-2"><i class="fa-solid fa-circle-check text-accent text-xs"></i> Strengths</h3><ul id="strengthsList" class="space-y-2"></ul></section>
         <section class="result-animate bg-card/80 backdrop-blur border border-border rounded-2xl p-5"><h3 class="text-sm font-semibold text-fg mb-3 flex items-center gap-2"><i class="fa-solid fa-circle-exclamation text-warning text-xs"></i> Gaps & Concerns</h3><ul id="weaknessesList" class="space-y-2"></ul></section>
       </div>
-      <section id="interviewSection" class="result-animate bg-card/80 backdrop-blur border border-border rounded-2xl p-5 hidden">
-        <div class="flex items-center justify-between mb-3"><h3 class="text-sm font-semibold text-fg flex items-center gap-2"><i class="fa-solid fa-comments text-accent/60 text-xs"></i> Interview Questions</h3><button onclick="copyInterviewQuestions()" class="text-xs text-accent hover:underline"><i class="fa-solid fa-copy mr-1"></i>Copy All</button></div>
-        <ul id="interviewQuestions" class="space-y-2"></ul>
-      </section>
-      <section id="improvementSection" class="result-animate bg-card/80 backdrop-blur border border-border rounded-2xl p-5 hidden">
-        <h3 class="text-sm font-semibold text-fg mb-3 flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-accent/60 text-xs"></i> Improvement Tips</h3>
-        <ul id="improvementList" class="space-y-2"></ul>
-      </section>
-      <section class="result-animate bg-card/80 backdrop-blur border border-border rounded-2xl p-5">
-        <h3 class="text-sm font-semibold text-fg mb-3 flex items-center gap-2"><i class="fa-solid fa-gavel text-accent/60 text-xs"></i> Recommendation</h3>
-        <p id="recommendationText" class="text-sm text-muted leading-relaxed bg-surface/60 rounded-lg p-4 border border-border/50"></p>
-      </section>
+
       <div class="result-animate flex gap-3 pb-8 flex-wrap">
-        <button id="exportBtn" class="flex-1 min-w-[120px] bg-surface border border-border rounded-xl py-3 text-sm text-muted hover:text-fg hover:border-border-light transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-download text-xs"></i> Export JSON</button>
-        <button id="exportHtmlBtn" class="flex-1 min-w-[120px] bg-surface border border-border rounded-xl py-3 text-sm text-muted hover:text-fg hover:border-border-light transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-file-code text-xs"></i> Export Report</button>
-        <button id="addToPipelineBtn" class="flex-1 min-w-[120px] bg-accent/10 border border-accent/20 text-accent rounded-xl py-3 text-sm hover:bg-accent hover:text-bg transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-plus text-xs"></i> Add to Pipeline</button>
-        <button id="resetBtn" class="flex-1 min-w-[120px] bg-surface border border-border rounded-xl py-3 text-sm text-muted hover:text-fg hover:border-border-light transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-rotate-left text-xs"></i> New Analysis</button>
+        <button id="addToPipelineBtn" class="flex-1 min-w-[150px] bg-accent border border-accent text-bg font-semibold rounded-xl py-3 text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-right text-xs"></i> View in Pipeline</button>
+        <button id="resetBtn" class="flex-1 min-w-[120px] bg-surface border border-border rounded-xl py-3 text-sm text-muted hover:text-fg hover:border-border-light transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-rotate-left text-xs"></i> New Scan</button>
       </div>
     </div>
   </div>
@@ -479,51 +495,91 @@ tailwind.config = {
 <!-- VIEW: PIPELINE -->
 <main id="view-pipeline" class="hidden flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 view-section">
   <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
-    <div><h2 class="text-2xl font-bold text-fg">Candidate Pipeline</h2><p class="text-sm text-muted mt-1">Drag and drop to move candidates between stages.</p></div>
+    <div>
+        <h2 class="text-2xl font-bold text-fg">Candidate Pipeline</h2>
+        <p class="text-sm text-muted mt-1" id="pipelineJobDescLabel">Showing candidates across all jobs.</p>
+    </div>
     <div class="flex items-center gap-2">
-      <div class="relative"><i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-muted text-xs"></i><input id="pipelineSearch" type="text" placeholder="Search pipeline..." class="bg-surface border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-fg placeholder:text-muted/50"></div>
+      <div class="relative"><i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-muted text-xs"></i><input id="pipelineSearch" type="text" placeholder="Search name/tag..." class="bg-surface border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-fg placeholder:text-muted/50"></div>
       <select id="pipelineSort" class="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg cursor-pointer"><option value="newest">Newest</option><option value="score_high">Score High</option><option value="score_low">Score Low</option></select>
-      <button onclick="exportAll('pipeline_csv')" class="px-4 py-2 bg-surface border border-border rounded-lg text-sm text-muted hover:text-fg hover:border-border-light transition-all"><i class="fa-solid fa-file-csv mr-1.5"></i>Export</button>
     </div>
   </div>
-  <div id="pipelineBoard" class="flex gap-4 overflow-x-auto pb-4 h-[calc(100vh-180px)]"></div>
+  <div id="pipelineBoard" class="flex gap-4 overflow-x-auto pb-4 h-[calc(100vh-180px)] items-start"></div>
 </main>
 
 <!-- VIEW: DASHBOARD -->
 <main id="view-dashboard" class="hidden flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 view-section">
   <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
-    <div><h2 class="text-2xl font-bold text-fg">Analytics Dashboard</h2><p class="text-sm text-muted mt-1">Screening history and pipeline metrics.</p></div>
+    <div><h2 class="text-2xl font-bold text-fg">Analytics Dashboard</h2><p class="text-sm text-muted mt-1">Screening history and metrics.</p></div>
     <div class="flex items-center gap-2">
-      <button id="compareBtn" class="px-4 py-2 bg-info/10 text-info border border-info/20 rounded-lg text-sm hover:bg-info hover:text-white transition-colors hidden"><i class="fa-solid fa-scale-balanced mr-1.5"></i>Compare</button>
-      <button onclick="openExportModal()" class="px-4 py-2 bg-surface border border-border rounded-lg text-sm text-muted hover:text-fg hover:border-border-light transition-all"><i class="fa-solid fa-file-export mr-1.5"></i>Export</button>
-      <button id="clearHistoryBtn" class="px-4 py-2 bg-danger/10 text-danger border border-danger/20 rounded-lg text-sm hover:bg-danger hover:text-white transition-colors"><i class="fa-solid fa-trash-can mr-1.5"></i>Clear All</button>
+      <button onclick="openExportModal()" class="px-4 py-2 bg-surface border border-border rounded-lg text-sm text-muted hover:text-fg transition-all"><i class="fa-solid fa-file-export mr-1.5"></i>Export</button>
+      <button id="clearHistoryBtn" class="px-4 py-2 bg-danger/10 text-danger border border-danger/20 rounded-lg text-sm hover:bg-danger hover:text-white transition-colors"><i class="fa-solid fa-trash-can mr-1.5"></i>Clear Database</button>
     </div>
   </div>
+  
   <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
     <div class="bg-card border border-border rounded-2xl p-6"><div class="flex items-center gap-3 text-muted mb-2"><i class="fa-solid fa-users text-info"></i><h3 class="text-sm font-semibold">Total Screened</h3></div><div class="text-4xl font-bold text-fg" id="dashTotal">0</div></div>
     <div class="bg-card border border-border rounded-2xl p-6"><div class="flex items-center gap-3 text-muted mb-2"><i class="fa-solid fa-bullseye text-accent"></i><h3 class="text-sm font-semibold">Average Score</h3></div><div class="text-4xl font-bold text-fg" id="dashAvgScore">0</div></div>
     <div class="bg-card border border-border rounded-2xl p-6"><div class="flex items-center gap-3 text-muted mb-2"><i class="fa-solid fa-thumbs-up text-warning"></i><h3 class="text-sm font-semibold">Pass Rate</h3></div><div class="text-4xl font-bold text-fg" id="dashPassRate">0%</div></div>
-    <div class="bg-card border border-border rounded-2xl p-6"><div class="flex items-center gap-3 text-muted mb-2"><i class="fa-solid fa-robot text-danger"></i><h3 class="text-sm font-semibold">Avg ATS Score</h3></div><div class="text-4xl font-bold text-fg" id="dashAvgAts">0</div></div>
+    <div class="bg-card border border-border rounded-2xl p-6"><div class="flex items-center gap-3 text-muted mb-2"><i class="fa-solid fa-briefcase text-info"></i><h3 class="text-sm font-semibold">Active Pipeline</h3></div><div class="text-4xl font-bold text-fg" id="dashActivePipe">0</div></div>
   </div>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
     <div class="bg-card border border-border rounded-2xl p-6"><h3 class="text-sm font-semibold text-fg mb-4">Score Distribution</h3><div class="chart-container"><canvas id="scoreDistChart"></canvas></div></div>
     <div class="bg-card border border-border rounded-2xl p-6"><h3 class="text-sm font-semibold text-fg mb-4">Pipeline Status</h3><div class="chart-container"><canvas id="pipelineChart"></canvas></div></div>
   </div>
-  <div class="bg-card border border-border rounded-2xl p-4 mb-6 flex flex-wrap gap-3 items-center">
-    <div class="relative flex-1 min-w-[200px]"><i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-muted text-xs"></i><input id="dashSearch" type="text" placeholder="Search candidates..." class="w-full bg-surface border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-fg placeholder:text-muted/50"></div>
-    <select id="dashSort" class="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg cursor-pointer"><option value="newest">Newest First</option><option value="score_high">Score: High to Low</option><option value="score_low">Score: Low to High</option><option value="ats_high">ATS: High to Low</option></select>
-    <select id="dashFilter" class="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg cursor-pointer"><option value="all">All Verdicts</option><option value="strong">Strong Recommend</option><option value="recommend">Recommend</option><option value="consider">Consider</option><option value="pass">Pass</option></select>
-  </div>
+  
   <div class="bg-card border border-border rounded-2xl p-6">
-    <div class="flex items-center justify-between mb-4"><h3 class="text-base font-semibold text-fg">Recent Screenings</h3><label class="flex items-center gap-2 text-xs text-muted cursor-pointer select-none"><input type="checkbox" id="selectAll" class="rounded border-border bg-surface text-accent focus:ring-0">Select All</label></div>
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
+        <h3 class="text-base font-semibold text-fg">Candidate Database</h3>
+        <div class="flex gap-2">
+            <div class="relative w-48"><i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-muted text-xs"></i><input id="dashSearch" type="text" placeholder="Search (Cmd+K)..." class="w-full bg-surface border border-border rounded-lg pl-9 pr-3 py-1.5 text-sm text-fg placeholder:text-muted/50"></div>
+            <select id="dashSort" class="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-fg cursor-pointer"><option value="newest">Newest First</option><option value="score_high">Score: High to Low</option></select>
+            <select id="dashFilter" class="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-fg cursor-pointer"><option value="all">All Verdicts</option><option value="strong">Strong Recommend</option><option value="pass">Pass</option></select>
+        </div>
+    </div>
     <div id="dashHistoryList" class="space-y-3"></div>
     <div id="dashEmptyState" class="text-center py-12 hidden"><i class="fa-solid fa-box-open text-4xl text-muted/30 mb-3 block"></i><p class="text-muted text-sm">No screening data available yet.</p></div>
   </div>
 </main>
 
+<!-- FLOATING PIPELINE CHAT -->
+<button id="fabChat" class="fixed bottom-6 right-6 z-40 w-14 h-14 bg-accent text-bg rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center text-2xl hover:scale-105 transition-transform" title="Chat with Pipeline Database">
+    <i class="fa-solid fa-messages"></i>
+</button>
+
+<div id="pipelineChat" class="fixed bottom-24 right-6 z-40 w-[400px] h-[550px] bg-card border border-border rounded-2xl shadow-2xl flex-col hidden overflow-hidden">
+    <div class="p-4 bg-surface border-b border-border flex items-center justify-between">
+        <div class="flex items-center gap-2 text-fg font-semibold"><i class="fa-solid fa-robot text-accent"></i> Pipeline Agent</div>
+        <button id="closeFabChat" class="text-muted hover:text-fg"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-4 text-sm flex flex-col bg-bg/50">
+        <div class="bg-surface border border-border/50 text-fg p-3 rounded-xl rounded-tl-none self-start max-w-[85%] leading-relaxed">
+            Hi! I have access to your pipeline data. Ask me things like "Who are my top 3 engineers?" or "How many candidates passed ATS screening?"
+        </div>
+    </div>
+    <div class="p-3 bg-surface border-t border-border flex gap-2">
+        <input type="text" id="chatInput" placeholder="Ask about your candidates..." class="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-fg focus:border-accent">
+        <button id="sendChatBtn" class="bg-accent text-bg w-10 h-10 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+</div>
+
 </div>
 
 <script>
+// ========================
+// Security Utilities (XSS)
+// ========================
+function escapeHTML(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[tag]));
+}
+
+// Config for marked.js & DOMPurify
+marked.use({ breaks: true, gfm: true });
+const sanitizeConfig = { ALLOWED_TAGS:['h1','h2','h3','p','ul','ol','li','strong','em','a','code','br'], ALLOWED_ATTR: ['href'] };
+
 // ========================
 // PDF.js setup
 // ========================
@@ -536,31 +592,19 @@ const PROVIDERS = {
   openrouter: { name: 'OpenRouter', defaultUrl: 'https://openrouter.ai/api/v1/chat/completions', needsKey: true, models:[
     { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
     { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
-    { id: 'openai/gpt-4o', name: 'GPT-4o' },
-    { id: 'deepseek/deepseek-chat', name: 'DeepSeek V3' },
-    { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B' }
+    { id: 'openai/gpt-4o', name: 'GPT-4o' }
   ]},
   nvidia: { name: 'NVIDIA NIM', defaultUrl: 'https://integrate.api.nvidia.com/v1/chat/completions', needsKey: true, models:[
-    { id: 'meta/llama-3.3-70b-instruct', name: 'Llama 3.3 70B' },
-    { id: 'mistralai/mixtral-8x22b-instruct-v0.1', name: 'Mixtral 8x22B' },
-    { id: 'nvidia/nemotron-4-340b-instruct', name: 'Nemotron-4 340B' }
+    { id: 'meta/llama-3.3-70b-instruct', name: 'Llama 3.3 70B' }
   ]},
   ollama: { name: 'Ollama (Local)', defaultUrl: 'http://localhost:11434/v1/chat/completions', needsKey: false, models:[
-    { id: 'llama3.2', name: 'Llama 3.2' },
-    { id: 'mistral', name: 'Mistral' },
-    { id: 'qwen2.5', name: 'Qwen 2.5' },
-    { id: 'phi3', name: 'Phi-3' }
+    { id: 'llama3.2', name: 'Llama 3.2' }, { id: 'mistral', name: 'Mistral' }
   ]},
-  custom: { name: 'Custom (OpenAI Compatible)', defaultUrl: '', needsKey: false, models:[] }
+  custom: { name: 'Custom (OpenAI)', defaultUrl: '', needsKey: false, models:[] }
 };
 
-const PIPELINE_STAGES = ['New','Screening','Interview','Offer','Hired','Rejected'];
+const PIPELINE_STAGES =['New','Screening','Interview','Offer','Hired','Rejected'];
 const STAGE_COLORS = { New:'#06b6d4', Screening:'#10b981', Interview:'#8b5cf6', Offer:'#f59e0b', Hired:'#059669', Rejected:'#ef4444' };
-
-const DEFAULT_FLAGS = {
-  pipeline: true, batchProcessing: true, customRubrics: true,
-  interviewTools: true, biasAudit: true, advancedExport: true, coverLetter: true
-};
 
 const DEFAULT_RUBRIC = {
   id: 'default', name: 'Standard Engineering',
@@ -574,10 +618,11 @@ const DEFAULT_RUBRIC = {
 };
 
 // ========================
-// State
+// State & Initialization
 // ========================
 let defaultSettings = {
   provider: 'openrouter',
+  gdprDays: '0',
   configs: {
     openrouter: { url: PROVIDERS.openrouter.defaultUrl, key: '', model: 'google/gemini-2.0-flash-001' },
     nvidia: { url: PROVIDERS.nvidia.defaultUrl, key: '', model: 'meta/llama-3.3-70b-instruct' },
@@ -587,107 +632,168 @@ let defaultSettings = {
 };
 
 let state = {
-  settings: JSON.parse(localStorage.getItem('sf_settings')) || defaultSettings,
-  flags: JSON.parse(localStorage.getItem('sf_flags')) || DEFAULT_FLAGS,
-  candidates: JSON.parse(localStorage.getItem('sf_candidates')) ||[],
-  rubrics: JSON.parse(localStorage.getItem('sf_rubrics')) || [JSON.parse(JSON.stringify(DEFAULT_RUBRIC))],
-  activeRubricId: localStorage.getItem('sf_active_rubric') || 'default',
-  isBlindMode: localStorage.getItem('sf_blind') === 'true',
+  settings: defaultSettings,
+  jobs: [], // {id, title, description, createdAt}
+  candidates:[],
+  rubrics:[JSON.parse(JSON.stringify(DEFAULT_RUBRIC))],
+  activeRubricId: 'default',
+  activeJobId: 'all', // Global filter
+  isBlindMode: false,
   isAnalyzing: false,
   lastResult: null,
   activeView: 'view-screener',
   batchQueue:[],
-  selectedForCompare: new Set(),
-  theme: localStorage.getItem('sf_theme') || 'dark',
+  theme: 'dark',
   currentCandidateId: null
 };
 
-if (!state.settings.configs) state.settings = defaultSettings;
-
-// Migrate old history
-function migrate() {
-  const old = JSON.parse(localStorage.getItem('sf_history') || '[]');
-  if (old.length && !state.candidates.length) {
-    state.candidates = old.map(h => ({
-      id: h.id || Date.now()+Math.random().toString(36).slice(2),
-      name: h.name || 'Unknown',
-      job: h.job || 'General',
-      stage: 'New',
-      history: h.history ||[{ date: h.time || new Date().toISOString(), action: 'Candidate added' }],
-      score: h.score || 0,
-      ats: h.ats || 0,
-      rec: h.rec || 'Pass',
-      tags:[],
-      notes: '',
-      analysis: {
-        categories: h.categories || {},
-        skills: h.skills || {},
-        strengths: h.strengths || [],
-        weaknesses: h.weaknesses ||[],
-        interview_questions: h.interview_questions || [],
-        improvement_suggestions: h.improvement_suggestions ||[],
-        summary: '',
-        recommendation: h.rec || 'Pass'
-      },
-      createdAt: h.time || new Date().toISOString(),
-      updatedAt: h.time || new Date().toISOString()
-    }));
-    saveCandidates();
-    localStorage.removeItem('sf_history');
-  }
-}
-migrate();
+let activeAbortController = null;
+let scoreChartInst = null;
+let pipelineChartInst = null;
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 
-// ========================
+async function initApp() {
+    state.settings = await localforage.getItem('sf_settings') || defaultSettings;
+    state.candidates = await localforage.getItem('sf_candidates') ||[];
+    state.jobs = await localforage.getItem('sf_jobs') || [];
+    state.rubrics = await localforage.getItem('sf_rubrics') ||[JSON.parse(JSON.stringify(DEFAULT_RUBRIC))];
+    state.activeRubricId = await localforage.getItem('sf_active_rubric') || 'default';
+    state.isBlindMode = await localforage.getItem('sf_blind') === true;
+    
+    // Theme
+    const storedTheme = await localforage.getItem('sf_theme');
+    state.theme = storedTheme ? storedTheme : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    
+    // GDPR Purge Check
+    const purgeDays = parseInt(state.settings.gdprDays || '0');
+    if (purgeDays > 0) {
+        const cutoff = Date.now() - (purgeDays * 24 * 60 * 60 * 1000);
+        const originalCount = state.candidates.length;
+        state.candidates = state.candidates.filter(c => new Date(c.createdAt).getTime() > cutoff);
+        if (state.candidates.length < originalCount) {
+            saveCandidates();
+            console.log(`GDPR Purge: Removed ${originalCount - state.candidates.length} old candidates.`);
+        }
+    }
+
+    applyTheme(state.theme);
+    applyBlindMode();
+    renderJobDropdowns();
+    updateGlobalUI();
+    
+    if(state.activeView==='view-dashboard') renderDashboard();
+    if(state.activeView==='view-pipeline') renderPipeline();
+}
+document.addEventListener('DOMContentLoaded', initApp);
+
+// Keyboard Shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeCandidateModal(); closeExportModal();
+        $('#settingsModal').classList.add('hidden'); $('#settingsModal').classList.remove('flex');
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); switchView('view-dashboard'); $('#dashSearch').focus(); }
+});
+
 // Persistence
-// ========================
-function saveCandidates() { localStorage.setItem('sf_candidates', JSON.stringify(state.candidates)); }
-function saveRubrics() { localStorage.setItem('sf_rubrics', JSON.stringify(state.rubrics)); localStorage.setItem('sf_active_rubric', state.activeRubricId); }
-function saveFlags() { localStorage.setItem('sf_flags', JSON.stringify(state.flags)); }
+function saveCandidates() { localforage.setItem('sf_candidates', state.candidates); }
+function saveJobs() { localforage.setItem('sf_jobs', state.jobs); renderJobDropdowns(); }
+function saveRubrics() { localforage.setItem('sf_rubrics', state.rubrics); localforage.setItem('sf_active_rubric', state.activeRubricId); }
 
-// ========================
-// Theme & Blind Mode
-// ========================
-function applyTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  $('#themeToggle i').className = t==='dark' ? 'fa-solid fa-sun text-xs' : 'fa-solid fa-moon text-xs';
-  localStorage.setItem('sf_theme', t);
-}
-applyTheme(state.theme);
-$('#themeToggle').addEventListener('click', () => { state.theme = state.theme==='dark'?'light':'dark'; applyTheme(state.theme); });
-
-function applyBlindMode() {
-  document.body.classList.toggle('blind-mode', state.isBlindMode);
-  $('#blindModeToggle i').className = state.isBlindMode ? 'fa-solid fa-eye text-xs text-accent' : 'fa-solid fa-eye-slash text-xs';
-}
-applyBlindMode();
-$('#blindModeToggle').addEventListener('click', () => { state.isBlindMode = !state.isBlindMode; localStorage.setItem('sf_blind', state.isBlindMode); applyBlindMode(); });
-
-// ========================
 // Toast
-// ========================
 function showToast(msg, type='info') {
   const colors = { info:'border-info/40 bg-info/10 text-info', success:'border-accent/40 bg-accent/10 text-accent', error:'border-danger/40 bg-danger/10 text-danger', warning:'border-warning/40 bg-warning/10 text-warning' };
   const icons = { info:'fa-circle-info', success:'fa-circle-check', error:'fa-circle-xmark', warning:'fa-triangle-exclamation' };
   const t = document.createElement('div');
   t.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border backdrop-blur-xl text-sm font-medium toast-enter ${colors[type]}`;
-  t.innerHTML = `<i class="fa-solid ${icons[type]} text-xs"></i><span>${msg}</span>`;
+  t.innerHTML = `<i class="fa-solid ${icons[type]} text-xs"></i><span>${escapeHTML(msg)}</span>`;
   $('#toastContainer').appendChild(t);
   setTimeout(() => { t.classList.remove('toast-enter'); t.classList.add('toast-exit'); setTimeout(()=>t.remove(),300); }, 3500);
 }
 
+function debounce(func, timeout = 300){ let timer; return (...args) => { clearTimeout(timer); timer = setTimeout(() => { func.apply(this, args); }, timeout); }; }
+
 // ========================
-// Navigation
+// Theme & Settings
 // ========================
-$$('.nav-tab').forEach(btn => {
-  btn.addEventListener('click', e => {
-    const target = e.currentTarget.getAttribute('data-target');
-    switchView(target);
-  });
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  $('#themeToggle i').className = t === 'dark' ? 'fa-solid fa-sun text-xs' : 'fa-solid fa-moon text-xs';
+  localforage.setItem('sf_theme', t);
+}
+$('#themeToggle').addEventListener('click', () => { state.theme = state.theme === 'dark' ? 'light' : 'dark'; applyTheme(state.theme); });
+function applyBlindMode() { document.body.classList.toggle('blind-mode', state.isBlindMode); $('#blindModeToggle i').className = state.isBlindMode ? 'fa-solid fa-eye text-xs text-accent' : 'fa-solid fa-eye-slash text-xs'; }
+$('#blindModeToggle').addEventListener('click', () => { state.isBlindMode = !state.isBlindMode; localforage.setItem('sf_blind', state.isBlindMode); applyBlindMode(); });
+
+function updateSettingsUI(pk) {
+  const conf = state.settings.configs[pk];
+  $('#baseUrlInput').value = conf.url; $('#apiKeyInput').value = conf.key || '';
+  
+  $('#modelSelect').innerHTML = '';
+  PROVIDERS[pk].models.forEach(m => { const o=document.createElement('option'); o.value=m.id; o.textContent=m.name; $('#modelSelect').appendChild(o); });
+  const c=document.createElement('option'); c.value='__custom__'; c.textContent='Custom Model...'; $('#modelSelect').appendChild(c);
+  
+  let found = Array.from($('#modelSelect').options).find(o=>o.value===conf.model);
+  if(found){ $('#modelSelect').value=conf.model; $('#customModelInput').classList.add('hidden'); }
+  else { $('#modelSelect').value='__custom__'; $('#customModelInput').value=conf.model; $('#customModelInput').classList.remove('hidden'); }
+  
+  $('#gdprSelect').value = state.settings.gdprDays || '0';
+  
+  // Rubrics
+  const sel = $('#rubricSelect'); sel.innerHTML = '';
+  state.rubrics.forEach(r => { const o=document.createElement('option'); o.value=r.id; o.textContent=r.name; sel.appendChild(o); });
+  sel.value = state.activeRubricId;
+  renderRubricEditor();
+}
+
+function getActiveRubric() { return state.rubrics.find(r=>r.id===state.activeRubricId) || state.rubrics[0]; }
+function renderRubricEditor() {
+  const rubric = getActiveRubric();
+  $('#rubricEditor').innerHTML = rubric.criteria.map((c,idx) => `
+    <div class="flex items-center gap-2 bg-surface border border-border rounded-lg p-2">
+      <input type="text" value="${escapeHTML(c.label)}" class="rubric-label flex-1 bg-transparent text-sm text-fg outline-none">
+      <input type="number" value="${c.weight}" class="rubric-weight w-16 bg-transparent text-sm text-fg text-center outline-none">
+      <span class="text-xs text-muted">%</span>
+      <button class="remove-criterion text-muted hover:text-danger px-1" data-idx="${idx}"><i class="fa-solid fa-trash text-xs"></i></button>
+    </div>
+  `).join('');
+}
+$('#rubricEditor').addEventListener('input', () => {
+    getActiveRubric().criteria.forEach((c,idx) => {
+        const row = $('#rubricEditor').children[idx];
+        c.label = row.querySelector('.rubric-label').value;
+        c.weight = parseInt(row.querySelector('.rubric-weight').value) || 0;
+    });
 });
+$('#rubricEditor').addEventListener('click', (e) => {
+    const btn = e.target.closest('.remove-criterion');
+    if(btn){ getActiveRubric().criteria.splice(parseInt(btn.dataset.idx),1); renderRubricEditor(); }
+});
+
+$('#providerSelect').addEventListener('change', e=>updateSettingsUI(e.target.value));
+$('#modelSelect').addEventListener('change', e=>$('#customModelInput').classList.toggle('hidden', e.target.value!=='__custom__'));
+$('#settingsToggle').addEventListener('click', ()=>{ $('#providerSelect').value=state.settings.provider; updateSettingsUI(state.settings.provider); $('#settingsModal').classList.remove('hidden'); $('#settingsModal').classList.add('flex'); });
+$('#closeSettingsModal').addEventListener('click', ()=>{ $('#settingsModal').classList.add('hidden'); $('#settingsModal').classList.remove('flex'); });
+
+$('#saveSettingsBtn').addEventListener('click', ()=>{
+  const p = $('#providerSelect').value;
+  const mVal = $('#modelSelect').value;
+  const actualModel = mVal === '__custom__' ? $('#customModelInput').value.trim() : mVal;
+  
+  state.settings.provider = p;
+  state.settings.configs[p] = { url:$('#baseUrlInput').value.trim(), key:$('#apiKeyInput').value.trim(), model:actualModel };
+  state.settings.gdprDays = $('#gdprSelect').value;
+  
+  saveRubrics(); localforage.setItem('sf_settings', state.settings);
+  $('#settingsModal').classList.add('hidden'); $('#settingsModal').classList.remove('flex');
+  updateGlobalUI(); showToast('Settings saved','success');
+});
+function updateGlobalUI() { updateAnalyzeButton(); }
+
+// Navigation
+$$('.nav-tab').forEach(btn => { btn.addEventListener('click', e => switchView(e.currentTarget.getAttribute('data-target'))); });
 function switchView(vid) {
   state.activeView = vid;
   $$('.nav-tab').forEach(b => b.classList.toggle('active', b.getAttribute('data-target')===vid));
@@ -698,442 +804,341 @@ function switchView(vid) {
 }
 
 // ========================
-// Settings
+// Job Management
 // ========================
-function populateModelDropdown(pk) {
-  $('#modelSelect').innerHTML = '';
-  PROVIDERS[pk].models.forEach(m => { const o=document.createElement('option'); o.value=m.id; o.textContent=m.name; $('#modelSelect').appendChild(o); });
-  const c=document.createElement('option'); c.value='__custom__'; c.textContent='Custom Model...'; $('#modelSelect').appendChild(c);
+function renderJobDropdowns() {
+    const globalFilter = $('#globalJobFilter');
+    const screenFilter = $('#screenerJobSelect');
+    
+    const options = `<option value="all">All Jobs</option>` + state.jobs.map(j => `<option value="${j.id}">${escapeHTML(j.title)}</option>`).join('');
+    globalFilter.innerHTML = options;
+    globalFilter.value = state.activeJobId;
+    
+    screenFilter.innerHTML = `<option value="">-- General / No Job --</option>` + state.jobs.map(j => `<option value="${j.id}">${escapeHTML(j.title)}</option>`).join('');
 }
 
-function renderFlags() {
-  const container = $('#flagsContainer');
-  container.innerHTML = Object.entries(state.flags).map(([k,v]) => `
-    <label class="flex items-center gap-2 text-xs text-muted cursor-pointer select-none bg-surface border border-border rounded-lg p-2">
-      <input type="checkbox" class="flag-toggle rounded border-border bg-surface text-accent focus:ring-0" data-key="${k}" ${v?'checked':''}>
-      <span class="capitalize">${k.replace(/([A-Z])/g,' $1')}</span>
-    </label>
-  `).join('');
-  $$('.flag-toggle').forEach(cb => {
-    cb.addEventListener('change', e => { state.flags[e.target.dataset.key] = e.target.checked; saveFlags(); applyFeatureFlags(); });
-  });
-}
-
-function renderRubricSelect() {
-  const sel = $('#rubricSelect');
-  sel.innerHTML = '';
-  state.rubrics.forEach(r => { const o=document.createElement('option'); o.value=r.id; o.textContent=r.name; sel.appendChild(o); });
-  sel.value = state.activeRubricId;
-}
-
-function getActiveRubric() { return state.rubrics.find(r=>r.id===state.activeRubricId) || state.rubrics[0]; }
-
-function renderRubricEditor() {
-  const rubric = getActiveRubric();
-  const container = $('#rubricEditor');
-  container.innerHTML = rubric.criteria.map((c,idx) => `
-    <div class="flex items-center gap-2 bg-surface border border-border rounded-lg p-2">
-      <input type="text" value="${c.label}" data-idx="${idx}" class="rubric-label flex-1 bg-transparent text-sm text-fg outline-none" placeholder="Category">
-      <input type="number" value="${c.weight}" data-idx="${idx}" min="0" max="100" class="rubric-weight w-16 bg-transparent text-sm text-fg text-center outline-none">
-      <span class="text-xs text-muted">%</span>
-      <button class="remove-criterion text-muted hover:text-danger px-1" data-idx="${idx}"><i class="fa-solid fa-trash text-xs"></i></button>
-    </div>
-  `).join('');
-  $$('.remove-criterion').forEach(b => b.addEventListener('click', e => {
-    const idx = parseInt(e.currentTarget.dataset.idx);
-    rubric.criteria.splice(idx,1);
-    renderRubricEditor(); updateRubricTotal();
-  }));
-  $$('.rubric-label, .rubric-weight').forEach(inp => {
-    inp.addEventListener('input', () => {
-      rubric.criteria.forEach((c,idx) => {
-        const row = container.children[idx];
-        c.label = row.querySelector('.rubric-label').value;
-        c.weight = parseInt(row.querySelector('.rubric-weight').value) || 0;
-      });
-      updateRubricTotal();
-    });
-  });
-  updateRubricTotal();
-}
-
-function updateRubricTotal() {
-  const total = getActiveRubric().criteria.reduce((a,c)=>a+c.weight,0);
-  const el = $('#rubricTotal');
-  el.textContent = `Total: ${total}%`;
-  el.style.color = total===100 ? 'var(--accent)' : 'var(--warning)';
-}
-
-$('#rubricSelect').addEventListener('change', e => { state.activeRubricId = e.target.value; renderRubricEditor(); });
-$('#addRubricBtn').addEventListener('click', () => {
-  const name = prompt('Rubric name:'); if(!name) return;
-  const newRubric = { id: 'rubric_'+Date.now(), name, criteria: JSON.parse(JSON.stringify(DEFAULT_RUBRIC.criteria)) };
-  state.rubrics.push(newRubric); state.activeRubricId = newRubric.id;
-  renderRubricSelect(); renderRubricEditor(); saveRubrics();
+$('#createNewJobBtn').addEventListener('click', () => { $('#newJobForm').classList.remove('hidden'); $('#newJobTitle').focus(); });
+$('#cancelNewJobBtn').addEventListener('click', () => { $('#newJobForm').classList.add('hidden'); $('#newJobTitle').value=''; });
+$('#saveNewJobBtn').addEventListener('click', () => {
+    const title = $('#newJobTitle').value.trim();
+    if(!title) return showToast('Enter job title','warning');
+    const newJob = { id: 'job_'+Date.now(), title, description: $('#jobDescription').value.trim(), createdAt: new Date().toISOString() };
+    state.jobs.push(newJob); saveJobs();
+    $('#newJobForm').classList.add('hidden'); $('#newJobTitle').value='';
+    $('#screenerJobSelect').value = newJob.id;
+    showToast('Job Requisition created','success');
 });
 
-function updateSettingsUI(pk) {
-  const conf = state.settings.configs[pk];
-  $('#baseUrlInput').value = conf.url;
-  $('#apiKeyInput').value = conf.key || '';
-  populateModelDropdown(pk);
-  let found = Array.from($('#modelSelect').options).find(o=>o.value===conf.model);
-  if(found){ $('#modelSelect').value=conf.model; $('#customModelInput').classList.add('hidden'); }
-  else { $('#modelSelect').value='__custom__'; $('#customModelInput').value=conf.model; $('#customModelInput').classList.remove('hidden'); }
-  $('#ollamaWarning').classList.toggle('hidden', pk!=='ollama');
-  renderFlags(); renderRubricSelect(); renderRubricEditor();
-}
-
-$('#providerSelect').addEventListener('change', e=>updateSettingsUI(e.target.value));
-$('#modelSelect').addEventListener('change', e=>$('#customModelInput').classList.toggle('hidden', e.target.value!=='__custom__'));
-$('#settingsToggle').addEventListener('click', ()=>{ $('#providerSelect').value=state.settings.provider; updateSettingsUI(state.settings.provider); $('#settingsModal').classList.remove('hidden'); $('#settingsModal').classList.add('flex'); });
-$('#closeSettingsModal').addEventListener('click', ()=>{ $('#settingsModal').classList.add('hidden'); $('#settingsModal').classList.remove('flex'); });
-$('#toggleKeyVisibility').addEventListener('click', ()=>{ const isPwd=$('#apiKeyInput').type==='password'; $('#apiKeyInput').type=isPwd?'text':'password'; $('#toggleKeyVisibility i').className=isPwd?'fa-solid fa-eye-slash text-sm':'fa-solid fa-eye text-sm'; });
-
-$('#saveSettingsBtn').addEventListener('click', ()=>{
-  const p=$('#providerSelect').value;
-  const mVal=$('#modelSelect').value;
-  const actualModel = mVal==='__custom__' ? $('#customModelInput').value.trim() : mVal;
-  if(mVal==='__custom__' && !actualModel) return showToast('Enter custom model name','warning');
-  if(!$('#baseUrlInput').value.trim()) return showToast('Base URL required','warning');
-  const rubric = getActiveRubric();
-  rubric.criteria.forEach((c,idx)=>{
-    const row=$('#rubricEditor').children[idx];
-    if(row){ c.label=row.querySelector('.rubric-label').value; c.weight=parseInt(row.querySelector('.rubric-weight').value)||0; }
-  });
-  state.settings.provider=p;
-  state.settings.configs[p]={ url:$('#baseUrlInput').value.trim(), key:$('#apiKeyInput').value.trim(), model:actualModel };
-  saveRubrics();
-  localStorage.setItem('sf_settings', JSON.stringify(state.settings));
-  $('#settingsModal').classList.add('hidden'); $('#settingsModal').classList.remove('flex');
-  updateGlobalUI(); applyFeatureFlags(); showToast('Settings saved','success');
+$('#screenerJobSelect').addEventListener('change', e => {
+    const j = state.jobs.find(x => x.id === e.target.value);
+    if(j) $('#jobDescription').value = j.description || '';
 });
 
-function updateGlobalUI() { $('#activeProviderDisplay').textContent = PROVIDERS[state.settings.provider].name; updateAnalyzeButton(); }
-
-function applyFeatureFlags() {
-  $('#coverLetterSection').classList.toggle('hidden', !state.flags.coverLetter);
-  $('#batchMode').closest('label').classList.toggle('hidden', !state.flags.batchProcessing);
-  $('#interviewSection').classList.toggle('hidden', !state.flags.interviewTools);
-  document.querySelector('[data-target="view-pipeline"]').classList.toggle('hidden', !state.flags.pipeline);
-  $('#exportDataBtn').classList.toggle('hidden', !state.flags.advancedExport);
-}
-applyFeatureFlags();
-
-// ========================
-// Inputs & Tools
-// ========================
-const jobDesc=$('#jobDescription'), resumeText=$('#resumeText'), coverLetter=$('#coverLetter'), analyzeBtn=$('#analyzeBtn'), batchMode=$('#batchMode');
-jobDesc.addEventListener('input',()=>{
-  $('#jobCharCount').textContent=jobDesc.value.length+' chars';
-  updateAnalyzeButton();
-  if(jobDesc.value.length > 50) $('#generateBooleanBtn').classList.remove('hidden');
-  else $('#generateBooleanBtn').classList.add('hidden');
+$('#globalJobFilter').addEventListener('change', e => {
+    state.activeJobId = e.target.value;
+    if(state.activeView === 'view-pipeline') renderPipeline();
+    if(state.activeView === 'view-dashboard') renderDashboard();
 });
-resumeText.addEventListener('input',()=>{$('#resumeCharCount').textContent=resumeText.value.length+' chars'; updateAnalyzeButton();});
+
+// ========================
+// Dropzone & Inputs (Global + Local)
+// ========================
+const updateCounts = debounce(() => {
+    $('#jobCharCount').textContent = $('#jobDescription').value.length + ' chars';
+    $('#resumeCharCount').textContent = $('#resumeText').value.length + ' chars';
+    if($('#jobDescription').value.length > 50) $('#generateBooleanBtn').classList.remove('hidden');
+    else $('#generateBooleanBtn').classList.add('hidden');
+    updateAnalyzeButton();
+}, 200);
+
+$('#jobDescription').addEventListener('input', updateCounts);
+$('#resumeText').addEventListener('input', updateCounts);
 
 function updateAnalyzeButton() {
   const p=state.settings.provider, conf=state.settings.configs[p];
   const hasKeyOrLocal = !!conf.key || p==='ollama' || p==='custom';
-  const hasJD = jobDesc.value.trim().length>20;
-  const hasResume = resumeText.value.trim().length>20 || state.batchQueue.length>0;
-  analyzeBtn.disabled = !hasKeyOrLocal || !hasJD || !hasResume || state.isAnalyzing;
+  const hasJD = $('#jobDescription').value.trim().length>20;
+  const hasResume = $('#resumeText').value.trim().length>20 || state.batchQueue.length>0;
+  $('#analyzeBtn').disabled = !hasKeyOrLocal || !hasJD || !hasResume || state.isAnalyzing;
   $('#analyzeBtnText').textContent = state.batchQueue.length>1 ? `Analyze Batch (${state.batchQueue.length})` : 'Analyze Resume';
 }
 
-batchMode.addEventListener('change',()=>{
-  if(batchMode.checked){ fileInput.setAttribute('multiple','multiple'); $('#dropText').innerHTML='Drop multiple <span class="text-fg/60 font-medium">.txt</span> or <span class="text-fg/60 font-medium">.pdf</span> files here'; }
-  else { fileInput.removeAttribute('multiple'); state.batchQueue=[]; renderBatchQueue(); $('#dropText').innerHTML='Drop <span class="text-fg/60 font-medium">.txt</span> or <span class="text-fg/60 font-medium">.pdf</span> here, or click to browse'; }
+$('#batchMode').addEventListener('change',(e)=>{
+  const isBatch = e.target.checked;
+  $('#fileInput').multiple = isBatch;
+  $('#dropText').innerHTML = isBatch ? 'Drop multiple files' : 'Drop a single file';
+  if(!isBatch) { state.batchQueue=[]; renderBatchQueue(); }
   updateAnalyzeButton();
 });
 
 function renderBatchQueue() {
-  const c=$('#batchQueue');
-  if(!state.batchQueue.length){ c.classList.add('hidden'); c.innerHTML=''; return; }
-  c.classList.remove('hidden');
-  c.innerHTML = state.batchQueue.map((f,i)=>`
-    <div class="flex items-center justify-between bg-surface border border-border rounded-lg px-3 py-2 text-xs">
-      <span class="text-fg truncate max-w-[200px]">${f.name}</span>
-      <button class="text-muted hover:text-danger" data-idx="${i}"><i class="fa-solid fa-xmark"></i></button>
+  const q = $('#batchQueue');
+  if(!state.batchQueue.length){ q.classList.add('hidden'); q.innerHTML=''; return; }
+  q.classList.remove('hidden');
+  q.innerHTML = state.batchQueue.map((f,i)=>`
+    <div class="flex items-center justify-between bg-surface border border-border rounded-lg px-3 py-1.5 text-xs">
+      <span class="text-fg truncate max-w-[200px]">${escapeHTML(f.name)}</span>
+      <button class="text-muted hover:text-danger remove-batch" data-idx="${i}"><i class="fa-solid fa-xmark"></i></button>
     </div>
   `).join('');
-  $$('#batchQueue button').forEach(b=>b.addEventListener('click',e=>{ state.batchQueue.splice(parseInt(e.currentTarget.dataset.idx),1); renderBatchQueue(); updateAnalyzeButton(); }));
+}
+$('#batchQueue').addEventListener('click', (e) => {
+    const btn = e.target.closest('.remove-batch');
+    if (btn) { state.batchQueue.splice(parseInt(btn.dataset.idx), 1); renderBatchQueue(); updateAnalyzeButton(); }
+});
+
+// Global & Local File Drop Handlers
+let dragCounter = 0;
+window.addEventListener('dragenter', e => { e.preventDefault(); dragCounter++; $('#globalDropZone').classList.add('active'); });
+window.addEventListener('dragleave', e => { e.preventDefault(); dragCounter--; if(dragCounter===0) $('#globalDropZone').classList.remove('active'); });
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => {
+    e.preventDefault(); dragCounter=0; $('#globalDropZone').classList.remove('active');
+    handleFilesDropped(e.dataTransfer.files);
+});
+$('#dropZone').addEventListener('click',()=>$('#fileInput').click());
+$('#fileInput').addEventListener('change',()=>handleFilesDropped($('#fileInput').files));
+
+function handleFilesDropped(fileList) {
+    if(!fileList.length) return;
+    const files = Array.from(fileList).filter(f => f.name.endsWith('.txt') || f.name.endsWith('.pdf'));
+    if(!files.length) return showToast('Only .txt and .pdf supported','warning');
+    
+    if($('#batchMode').checked) {
+        state.batchQueue.push(...files);
+        renderBatchQueue(); showToast(`${files.length} files queued`,'success');
+    } else {
+        processSingleFile(files[0]);
+    }
+    updateAnalyzeButton();
 }
 
-const dropZone=$('#dropZone'), fileInput=$('#fileInput');
-dropZone.addEventListener('click',()=>fileInput.click());
-dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
-dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop',e=>{
-  e.preventDefault(); dropZone.classList.remove('dragover');
-  if(batchMode.checked){ Array.from(e.dataTransfer.files).forEach(f=>{if(f.name.endsWith('.txt')||f.name.endsWith('.pdf'))state.batchQueue.push(f);}); renderBatchQueue(); showToast(`${state.batchQueue.length} files queued`,'success'); }
-  else { if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); }
-  updateAnalyzeButton();
-});
-fileInput.addEventListener('change',()=>{
-  if(batchMode.checked){ Array.from(fileInput.files).forEach(f=>{if(f.name.endsWith('.txt')||f.name.endsWith('.pdf'))state.batchQueue.push(f);}); renderBatchQueue(); showToast(`${state.batchQueue.length} files queued`,'success'); }
-  else { if(fileInput.files.length) handleFile(fileInput.files[0]); }
-  updateAnalyzeButton();
-});
-
-async function handleFile(file) {
-  const ext=file.name.split('.').pop().toLowerCase();
-  $('#fileName').textContent=file.name; $('#fileName').classList.remove('hidden');
-  if(ext==='txt'){ resumeText.value=await file.text(); showToast('Text file loaded','success'); }
-  else if(ext==='pdf'){
-    try{ const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise; let text='';
-      for(let i=1;i<=pdf.numPages;i++){ const page=await pdf.getPage(i); text+=(await page.getTextContent()).items.map(it=>it.str).join(' ')+'\n'; }
-      resumeText.value=text.trim(); showToast('PDF parsed','success');
-    }catch(err){ showToast('Failed to parse PDF','error'); }
-  } else { showToast('Use .txt or .pdf','warning'); }
-  $('#resumeCharCount').textContent=resumeText.value.length+' chars'; updateAnalyzeButton();
-}
-
-// Boolean Search Generator
-$('#generateBooleanBtn').addEventListener('click', async () => {
-  const job = jobDesc.value.trim();
-  if(job.length < 50) return showToast('Enter a longer Job Description first', 'warning');
-  showToast('Generating Boolean Search...', 'info');
-  try {
-     const prompt = `Create an advanced Boolean search string for finding candidates for this job description on LinkedIn or Google. Job Description: ${job}. Return ONLY the raw boolean search string, no markdown, no quotes, no explanations. Make it optimized and comprehensive.`;
-     const p = state.settings.provider, conf = state.settings.configs[p];
-     const headers={'Content-Type':'application/json'}; if(conf.key) headers['Authorization']=`Bearer ${conf.key}`;
-     const res=await fetch(conf.url,{method:'POST',headers,body:JSON.stringify({model:conf.model,messages:[{role:'user',content:prompt}],temperature:0.2,stream:false})});
-     const data=await res.json();
-     const content=data.choices?.[0]?.message?.content || data.response || '';
-     const clean = content.replace(/^[`"'\s]+|[`"'\s]+$/g, '');
-     navigator.clipboard.writeText(clean);
-     showToast('Boolean search copied to clipboard!', 'success');
-  } catch(e) {
-     showToast('Failed to generate boolean search', 'error');
-  }
-});
-
-// ========================
-// ATS Checker
-// ========================
-function runATSCheck(resume,job) {
-  const issues=[]; let score=100; const r=resume.toLowerCase(), j=job.toLowerCase();
-  const words=resume.trim().split(/\s+/).length;
-  if(words<150){issues.push('Resume is short ('+words+' words). Aim for 300-600.'); score-=15;}
-  if(words>1000){issues.push('Resume is very long ('+words+' words). Consider condensing.'); score-=10;}
-  if(!r.match(/[\w.-]+@[\w.-]+\.\w{2,}/)){issues.push('No email address detected.'); score-=10;}
-  if(!r.match(/\b(?:phone|tel|mobile|\+?\d[\d\s()-]{7,}\d)\b/)){issues.push('No phone number detected.'); score-=5;}
-  const sections=['experience','education','skills','summary','objective','projects'];
-  const found=sections.filter(s=>r.includes(s));
-  if(found.length<3){issues.push('Missing standard sections.'); score-=10;}
-  const jobWords=j.split(/\s+/).filter(w=>w.length>4); const unique=[...new Set(jobWords)];
-  const matched=unique.filter(w=>r.includes(w)).length;
-  const density=unique.length?(matched/unique.length):0;
-  if(density<0.3){issues.push('Low keyword match ('+Math.round(density*100)+'%). Tailor keywords.'); score-=15;}
-  if(resume.includes('\t')){issues.push('Contains tabs which may break ATS parsing.'); score-=5;}
-  if((resume.match(/■|●|►|▸|‣/g)||[]).length>10){issues.push('Special bullets may not parse correctly.'); score-=5;}
-  return {score:Math.max(0,score),issues,density:Math.round(density*100)};
+async function processSingleFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if(ext==='txt'){ $('#resumeText').value = await file.text(); }
+    else if(ext==='pdf'){
+        try {
+            const pdf = await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise; let text='';
+            for(let i=1;i<=pdf.numPages;i++){ const page=await pdf.getPage(i); text+=(await page.getTextContent()).items.map(it=>it.str).join(' ')+'\n'; }
+            $('#resumeText').value = text.trim();
+        } catch(err) { showToast('Failed to parse PDF','error'); return; }
+    }
+    showToast(`${file.name} loaded`,'success');
+    updateCounts();
 }
 
 // ========================
-// Prompt Builder
+// AI Analysis Engine
 // ========================
 function buildSystemPrompt() {
-  const rubric=getActiveRubric();
-  const catDefs=rubric.criteria.map(c=>`"${c.key}": { "score": <integer 0-100>, "notes": "<string>" }`).join(',\n    ');
-  const catWeights=rubric.criteria.map(c=>`${c.label} (${c.weight}%)`).join(', ');
-  return `You are an expert technical recruiter. Analyze the resume against the job description using this rubric: ${catWeights}.
-Return ONLY raw JSON matching this structure exactly. No markdown blocks.
+  const rubric = getActiveRubric();
+  const catDefs = rubric.criteria.map(c=>`"${c.key}": { "score": <0-100>, "notes": "<string>" }`).join(',\n    ');
+  return `You are an expert technical recruiter. Analyze the resume against the job description.
+Return ONLY raw JSON matching this structure exactly. No markdown formatting blocks around it.
 {
   "overall_score": <integer 0-100>,
   "categories": { ${catDefs} },
   "skills_analysis": { "matched_skills": ["<string>"], "missing_skills": ["<string>"] },
-  "strengths": ["<string>"],
-  "weaknesses": ["<string>"],
+  "strengths":["<string>"], "weaknesses": ["<string>"],
   "summary": "<string 2-3 sentences>",
   "recommendation": "<Strong Recommend | Recommend | Consider | Pass> - <short reason>",
-  "interview_questions": ["<string>"],
-  "improvement_suggestions": ["<string>"]
+  "interview_questions": ["<string>"]
 }`;
 }
 
 function parseJSON(text) {
   try{return JSON.parse(text);}catch(e){}
-  const m=text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if(m){try{return JSON.parse(m[1].trim());}catch(e){}}
-  const s=text.indexOf('{'), e=text.lastIndexOf('}');
-  if(s!==-1&&e>s){try{return JSON.parse(text.slice(s,e+1));}catch(e){}}
-  throw new Error('Could not parse JSON from AI response.');
+  const m=text.match(/```(?:json)?\s*([\s\S]*?)```/); if(m){try{return JSON.parse(m[1].trim());}catch(e){}}
+  const s=text.indexOf('{'), e=text.lastIndexOf('}'); if(s!==-1&&e>s){try{return JSON.parse(text.slice(s,e+1));}catch(e){}}
+  return { overall_score: 0, summary: "AI failed to return valid JSON format.", recommendation: "Pass", categories: {}, skills_analysis: { matched_skills:[], missing_skills:[] } };
 }
 
-// ========================
-// Analysis Engine
-// ========================
-async function analyzeSingle(resumeContent,coverContent,jobContent,fileName) {
+function runATSCheck(resume,job) {
+  let score=100; const r=resume.toLowerCase();
+  if(r.split(/\s+/).length<150) score-=15;
+  if(!r.match(/[\w.-]+@[\w.-]+\.\w{2,}/)) score-=10;
+  if(!r.match(/\b(?:phone|tel|mobile|\+?\d[\d\s()-]{7,}\d)\b/)) score-=5;
+  return { score:Math.max(0,score) };
+}
+
+async function analyzeSingle(resumeContent, jobContent, fileName) {
   const p=state.settings.provider, conf=state.settings.configs[p];
   const headers={'Content-Type':'application/json'};
   if(conf.key) headers['Authorization']=`Bearer ${conf.key}`;
-  if(p==='openrouter'){ headers['HTTP-Referer']=window.location.href; headers['X-Title']='ScreenForge AI'; }
-  let userContent=`JOB:\n${jobContent}\n\nRESUME:\n${resumeContent}`;
-  if(coverContent&&coverContent.trim().length>20) userContent+=`\n\nCOVER LETTER:\n${coverContent}`;
-  const payload={ model:conf.model, messages:[ {role:'system',content:buildSystemPrompt()}, {role:'user',content:userContent} ], temperature:0.2, stream:false };
+  
+  const payload={ model:conf.model, messages:[ {role:'system',content:buildSystemPrompt()}, {role:'user',content:`JOB:\n${jobContent}\n\nRESUME:\n${resumeContent}`} ], temperature:0.2, stream:false };
   if(p!=='openrouter') payload.response_format={type:"json_object"};
-  const response=await fetch(conf.url,{method:'POST',headers,body:JSON.stringify(payload)});
-  if(!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  
+  activeAbortController = new AbortController();
+  const response = await fetch(conf.url, { method: 'POST', headers, body: JSON.stringify(payload), signal: activeAbortController.signal });
+  if(!response.ok) throw new Error(`API Error: ${response.status}`);
+  
   const data=await response.json();
   const content=data.choices?.[0]?.message?.content||data.response||'';
-  if(!content) throw new Error('Empty response from model');
   const result=parseJSON(content);
   result._ats=runATSCheck(resumeContent,jobContent);
   result._name=fileName||resumeContent.split('\n')[0].replace(/[^a-zA-Z\s.-]/g,'').trim().substring(0,30)||'Unknown';
   return result;
 }
 
-// Async pool for parallel batch processing (max 3 concurrent)
-async function asyncPool(concurrency, iterable, iteratorFn) {
-  const ret=[]; const executing=new Set();
-  for(const item of iterable){
-    const p=Promise.resolve().then(()=>iteratorFn(item));
-    ret.push(p); executing.add(p);
-    const clean=()=>executing.delete(p);
-    p.then(clean).catch(clean);
-    if(executing.size>=concurrency) await Promise.race(executing);
-  }
-  return Promise.all(ret);
+// Custom async pool for progressive UI updates
+async function progressiveBatchPool(concurrency, files, jobContent, jobId) {
+    const executing = new Set();
+    let completed = 0;
+    
+    for (const file of files) {
+        if (!state.isAnalyzing) break; // handle cancel
+        
+        const p = Promise.resolve().then(async () => {
+            $('#loadingStatus').textContent=`Processing ${file.name}...`;
+            
+            let resumeContent=''; const ext=file.name.split('.').pop().toLowerCase();
+            if(ext==='txt') resumeContent=await file.text();
+            else if(ext==='pdf'){ const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise; let text=''; for(let p=1;p<=pdf.numPages;p++){ const page=await pdf.getPage(p); text+=(await page.getTextContent()).items.map(it=>it.str).join(' ')+'\n'; } resumeContent=text.trim(); }
+            
+            if(resumeContent.length>20){ 
+                const res = await analyzeSingle(resumeContent, jobContent, file.name.replace(/\.(txt|pdf)$/i,'')); 
+                addCandidate(res, jobContent, resumeContent, jobId); 
+                
+                // Progressive UI Update
+                completed++;
+                $('#batchProgressText').textContent = `${completed} / ${files.length}`;
+                $('#batchProgressBar').style.width = `${(completed/files.length)*100}%`;
+                
+                if (state.activeView === 'view-pipeline') renderPipeline();
+                if (state.activeView === 'view-dashboard') renderDashboard();
+                
+                // Remove from queue UI
+                state.batchQueue = state.batchQueue.filter(f => f.name !== file.name);
+                renderBatchQueue();
+            }
+        });
+        
+        executing.add(p);
+        const clean = () => executing.delete(p);
+        p.then(clean).catch(clean);
+        
+        if (executing.size >= concurrency) await Promise.race(executing);
+    }
+    return Promise.all(executing);
 }
 
-analyzeBtn.addEventListener('click',async()=>{
+$('#analyzeBtn').addEventListener('click',async()=>{
   if(state.isAnalyzing) return;
   state.isAnalyzing=true; updateAnalyzeButton();
   $('#emptyState').classList.add('hidden'); $('#resultsPanel').classList.add('hidden'); $('#loadingState').classList.remove('hidden');
-  const jobContent=jobDesc.value.trim(), coverContent=coverLetter.value.trim();
-  try{
-    if(batchMode.checked && state.batchQueue.length>0){
-      let completed=0;
-      const results = await asyncPool(3, state.batchQueue, async (file) => {
-        $('#loadingStatus').textContent=`Processing ${file.name}...`;
-        $('#batchProgress').textContent=`${completed+1} of ${state.batchQueue.length}`; $('#batchProgress').classList.remove('hidden');
-        let resumeContent=''; const ext=file.name.split('.').pop().toLowerCase();
-        if(ext==='txt') resumeContent=await file.text();
-        else if(ext==='pdf'){ const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise; let text=''; for(let p=1;p<=pdf.numPages;p++){ const page=await pdf.getPage(p); text+=(await page.getTextContent()).items.map(it=>it.str).join(' ')+'\n'; } resumeContent=text.trim(); }
-        if(resumeContent.length>20){ const res=await analyzeSingle(resumeContent,coverContent,jobContent,file.name.replace(/\.(txt|pdf)$/i,'')); addCandidate(res,jobContent,resumeContent); completed++; return res; }
-      });
-      showToast(`Batch complete: ${results.filter(Boolean).length} analyzed`,'success');
-      if(results.filter(Boolean).length>0) renderResults(results.filter(Boolean)[0]);
-      state.batchQueue=[]; renderBatchQueue();
+  
+  const jobContent=$('#jobDescription').value.trim();
+  const currentJobId=$('#screenerJobSelect').value || null;
+
+  try {
+    if($('#batchMode').checked && state.batchQueue.length>0){
+      $('#batchProgressWrap').classList.remove('hidden');
+      const total = state.batchQueue.length;
+      $('#batchProgressText').textContent = `0 / ${total}`;
+      $('#batchProgressBar').style.width = '0%';
+      
+      await progressiveBatchPool(3,[...state.batchQueue], jobContent, currentJobId);
+      
+      if(state.isAnalyzing) { showToast(`Batch complete`,'success'); switchView('view-pipeline'); }
     } else {
-      const res=await analyzeSingle(resumeText.value.trim(),coverContent,jobContent);
-      state.lastResult=res; renderResults(res); addCandidate(res,jobContent,resumeText.value.trim());
+      $('#batchProgressWrap').classList.add('hidden');
+      const res = await analyzeSingle($('#resumeText').value.trim(), jobContent);
+      state.lastResult=res; renderResults(res); 
+      addCandidate(res, jobContent, $('#resumeText').value.trim(), currentJobId);
       showToast('Analysis complete','success');
     }
   }catch(err){
+    if (err.name === 'AbortError') showToast('Cancelled', 'info');
+    else showToast(err.message,'error');
     $('#emptyState').classList.remove('hidden');
-    showToast(err.message.includes('fetch')&&state.settings.provider==='ollama'?'Cannot connect to Ollama. Ensure CORS is enabled.':err.message,'error');
   }finally{
-    state.isAnalyzing=false; $('#loadingState').classList.add('hidden'); $('#batchProgress').classList.add('hidden'); updateAnalyzeButton();
+    state.isAnalyzing=false; activeAbortController=null;
+    $('#loadingState').classList.add('hidden'); updateAnalyzeButton();
   }
 });
 
-function addCandidate(res,job,resTxt) {
+$('#cancelAnalyzeBtn').addEventListener('click', () => {
+    if (activeAbortController) {
+        activeAbortController.abort(); state.isAnalyzing = false;
+        $('#loadingState').classList.add('hidden'); $('#emptyState').classList.remove('hidden');
+    }
+});
+
+function addCandidate(res, jobText, resTxt, jobId) {
+  const autoTags =[...new Set(res.skills_analysis?.matched_skills || [])].slice(0, 5);
+  // Find job title for display
+  const j = state.jobs.find(x => x.id === jobId);
+  const jobDisplay = j ? j.title : (jobText.split('\n')[0].substring(0,40)||'General');
+
   const c={
     id: Date.now()+Math.random().toString(36).slice(2),
-    name: res._name||resTxt.split('\n')[0].replace(/[^a-zA-Z\s.-]/g,'').trim().substring(0,30)||'Unknown',
-    job: job.split('\n')[0].substring(0,40)||'General',
+    jobId: jobId || null,
+    name: res._name || 'Unknown',
+    job: jobDisplay,
     stage: 'New',
-    history:[{ date: new Date().toISOString(), action: 'Candidate Screened & Added' }],
-    score: res.overall_score||0,
-    ats: (res._ats||{}).score||0,
-    rec: res.recommendation||'Pass',
-    tags:[],
-    notes: '',
-    analysis: {
-      categories: res.categories||{},
-      skills: res.skills_analysis||{},
-      strengths: res.strengths||[],
-      weaknesses: res.weaknesses||[],
-      interview_questions: res.interview_questions||[],
-      improvement_suggestions: res.improvement_suggestions||[],
-      summary: res.summary||'',
-      recommendation: res.recommendation||'Pass'
-    },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    history:[{ date: new Date().toISOString(), action: 'Added to pipeline' }],
+    score: res.overall_score||0, ats: (res._ats||{}).score||0, rec: res.recommendation||'Pass',
+    tags: autoTags, rawResume: resTxt, rawJob: jobText, notes: '',
+    analysis: res,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   };
-  state.candidates.unshift(c); if(state.candidates.length>200) state.candidates.length=200;
-  saveCandidates(); if(state.activeView==='view-dashboard') renderDashboard(); if(state.activeView==='view-pipeline') renderPipeline();
+  state.candidates.unshift(c); saveCandidates();
 }
 
 function renderResults(r) {
   $('#resultsPanel').classList.remove('hidden');
   $$('.result-animate').forEach(el=>{ el.style.animation='none'; el.offsetHeight; el.style.animation=''; });
+  
   const score=Math.min(100,Math.max(0,r.overall_score||0));
   const offset=364.42*(1-score/100);
   let color=score>=80?'var(--accent)':score>=60?'var(--info)':score>=40?'var(--warning)':'var(--danger)';
   $('#gaugeRing').style.stroke=color; $('#gaugeGlow').style.stroke=color;
   requestAnimationFrame(()=>{ $('#gaugeRing').style.strokeDashoffset=offset; $('#gaugeGlow').style.strokeDashoffset=offset; });
-  let cur=0; const end=score; const tick=()=>{ cur+=(end-cur)*0.1; $('#gaugeText').textContent=Math.round(cur); if(Math.abs(end-cur)>0.5) requestAnimationFrame(tick); else $('#gaugeText').textContent=end; }; tick();
+  $('#gaugeText').textContent=score;
+  
   const rec=(r.recommendation||'').toLowerCase();
-  let bCls='bg-danger/15 text-danger border border-danger/30', bIco='fa-circle-xmark';
-  if(rec.includes('strong')){bCls='bg-accent/15 text-accent border border-accent/30'; bIco='fa-circle-check';}
-  else if(rec.includes('recommend')){bCls='bg-info/15 text-info border border-info/30'; bIco='fa-circle-check';}
-  else if(rec.includes('consider')){bCls='bg-warning/15 text-warning border border-warning/30'; bIco='fa-circle-exclamation';}
+  let bCls='bg-danger/15 text-danger border border-danger/30';
+  if(rec.includes('strong')) bCls='bg-accent/15 text-accent border border-accent/30';
+  else if(rec.includes('recommend')) bCls='bg-info/15 text-info border border-info/30';
   $('#verdictBadge').className=`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-2 badge-pulse ${bCls}`;
-  $('#verdictBadge').innerHTML=`<i class="fa-solid ${bIco}"></i>${r.recommendation||'No Rec'}`;
-  $('#summaryText').textContent=r.summary||'No summary available.';
-
-  const ats=r._ats||{score:0,issues:[]};
-  const atsColor=ats.score>=80?'var(--accent)':ats.score>=60?'var(--info)':ats.score>=40?'var(--warning)':'var(--danger)';
-  $('#atsScore').textContent=ats.score; $('#atsScore').style.color=atsColor;
-  $('#atsBar').style.width=ats.score+'%'; $('#atsBar').style.background=atsColor;
-  $('#atsIssues').innerHTML=ats.issues.map(i=>`<li class="text-xs text-muted flex gap-2"><i class="fa-solid fa-circle-info text-[10px] mt-0.5" style="color:${atsColor}"></i>${i}</li>`).join('')||'<li class="text-xs text-muted">No major ATS issues.</li>';
+  $('#verdictBadge').innerHTML=`<i class="fa-solid fa-circle"></i>${escapeHTML(r.recommendation||'No Rec')}`;
+  $('#summaryText').textContent=r.summary||'';
 
   const rubric=getActiveRubric();
   $('#categoriesContainer').innerHTML=rubric.criteria.map(c=>{
-    const cat=(r.categories||{})[c.key]; if(!cat) return '';
-    const cs=cat.score||0; const cc=cs>=80?'var(--accent)':cs>=60?'var(--info)':cs>=40?'var(--warning)':'var(--danger)';
-    return `<div><div class="flex justify-between mb-1 text-sm"><span class="font-medium flex items-center gap-2"><i class="fa-solid ${c.icon} text-xs" style="color:${cc}"></i>${c.label}</span><span class="font-bold" style="color:${cc}">${cs}</span></div><div class="w-full h-2 bg-surface rounded-full overflow-hidden"><div class="h-full rounded-full transition-all duration-1000" style="width:${cs}%;background:${cc}"></div></div>${cat.notes?`<p class="text-xs text-muted/70 mt-1">${cat.notes}</p>`:''}</div>`;
+    const cs=(r.categories?.[c.key]?.score)||0; const cc=cs>=80?'var(--accent)':cs>=60?'var(--info)':cs>=40?'var(--warning)':'var(--danger)';
+    return `<div><div class="flex justify-between mb-1 text-sm"><span class="font-medium">${escapeHTML(c.label)}</span><span class="font-bold" style="color:${cc}">${cs}</span></div><div class="w-full h-2 bg-surface rounded-full overflow-hidden"><div class="h-full rounded-full transition-all duration-1000" style="width:${cs}%;background:${cc}"></div></div></div>`;
   }).join('');
 
-  const sk=r.skills_analysis||{};
-  if(sk.matched_skills?.length||sk.missing_skills?.length){
-    $('#skillsSection').classList.remove('hidden');
-    $('#matchedSkills').innerHTML='<span class="text-xs text-muted mb-1 block">Matched:</span>'+(sk.matched_skills?.map(s=>`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-accent/10 text-xs text-accent mr-1 mb-1"><i class="fa-solid fa-check"></i>${s}</span>`).join('')||'');
-    $('#missingSkills').innerHTML='<span class="text-xs text-muted mb-1 block">Missing:</span>'+(sk.missing_skills?.map(s=>`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-danger/10 text-xs text-danger mr-1 mb-1"><i class="fa-solid fa-xmark"></i>${s}</span>`).join('')||'');
-  } else $('#skillsSection').classList.add('hidden');
-
-  const li=(arr,ico,cl)=>arr.map(x=>`<li class="flex gap-2 text-sm text-muted mb-1"><i class="fa-solid ${ico} ${cl} mt-1 text-[10px]"></i><span>${x}</span></li>`).join('')||'<li class="text-sm text-muted">None</li>';
+  const li=(arr,ico,cl)=>arr.map(x=>`<li class="flex gap-2 text-sm text-muted mb-1"><i class="fa-solid ${ico} ${cl} mt-1 text-[10px]"></i><span>${escapeHTML(x)}</span></li>`).join('');
   $('#strengthsList').innerHTML=li(r.strengths||[],'fa-plus','text-accent');
   $('#weaknessesList').innerHTML=li(r.weaknesses||[],'fa-minus','text-warning');
-
-  if(r.interview_questions?.length){ $('#interviewSection').classList.remove('hidden'); $('#interviewQuestions').innerHTML=r.interview_questions.map((q,i)=>`<li class="flex gap-2 text-sm text-muted"><span class="text-accent font-bold text-xs mt-0.5">${i+1}.</span><span>${q}</span></li>`).join(''); }
-  else $('#interviewSection').classList.add('hidden');
-
-  if(r.improvement_suggestions?.length){ $('#improvementSection').classList.remove('hidden'); $('#improvementList').innerHTML=r.improvement_suggestions.map(s=>`<li class="flex gap-2 text-sm text-muted"><i class="fa-solid fa-lightbulb text-warning mt-1 text-[10px]"></i><span>${s}</span></li>`).join(''); }
-  else $('#improvementSection').classList.add('hidden');
-
-  $('#recommendationText').textContent=r.recommendation;
 }
 
 $('#resetBtn').addEventListener('click',()=>{ $('#resultsPanel').classList.add('hidden'); $('#emptyState').classList.remove('hidden'); state.lastResult=null; });
-$('#exportBtn').addEventListener('click',()=>{ if(!state.lastResult)return; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(state.lastResult,null,2)],{type:'application/json'})); a.download=`screenforge-${Date.now()}.json`; a.click(); });
-$('#exportHtmlBtn').addEventListener('click',()=>{ if(!state.lastResult)return; const r=state.lastResult; const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>ScreenForge Report</title><style>body{font-family:sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#111}h1{color:#059669}.score{font-size:48px;font-weight:bold}.section{margin:20px 0;padding:15px;background:#f6f7f6;border-radius:8px}.badge{display:inline-block;padding:4px 12px;border-radius:999px;background:#e4ece7;font-weight:600}ul{line-height:1.8}.matched{color:#059669}.missing{color:#dc2626}</style></head><body><h1>ScreenForge Report</h1><div class="section"><div class="score">${r.overall_score}/100</div><div class="badge">${r.recommendation}</div><p>${r.summary}</p></div><div class="section"><h3>Skills</h3><p class="matched">Matched: ${(r.skills_analysis?.matched_skills||[]).join(', ')}</p><p class="missing">Missing: ${(r.skills_analysis?.missing_skills||[]).join(', ')}</p></div><div class="section"><h3>Strengths</h3><ul>${(r.strengths||[]).map(s=>'<li>'+s+'</li>').join('')}</ul></div><div class="section"><h3>Gaps</h3><ul>${(r.weaknesses||[]).map(s=>'<li>'+s+'</li>').join('')}</ul></div><div class="section"><h3>Interview Questions</h3><ol>${(r.interview_questions||[]).map(q=>'<li>'+q+'</li>').join('')}</ol></div><div class="section"><h3>Improvement Tips</h3><ul>${(r.improvement_suggestions||[]).map(s=>'<li>'+s+'</li>').join('')}</ul></div></body></html>`; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=`screenforge-report-${Date.now()}.html`; a.click(); });
-$('#addToPipelineBtn').addEventListener('click',()=>{ if(!state.lastResult) return; addCandidate(state.lastResult, jobDesc.value.trim(), resumeText.value.trim()); showToast('Added to pipeline','success'); });
-
-function copyInterviewQuestions() {
-  if(!state.lastResult?.interview_questions) return;
-  const text = state.lastResult.interview_questions.map((q,i)=>`${i+1}. ${q}`).join('\n');
-  navigator.clipboard.writeText(text).then(()=>showToast('Questions copied','success'));
-}
+$('#addToPipelineBtn').addEventListener('click',()=>{ switchView('view-pipeline'); });
 
 // ========================
-// Pipeline / Kanban
+// Pipeline (Kanban)
 // ========================
 function renderPipeline() {
-  const board=$('#pipelineBoard');
   const search=$('#pipelineSearch').value.toLowerCase();
   const sort=$('#pipelineSort').value;
-  let list = state.candidates.filter(c=>c.name.toLowerCase().includes(search)||c.job.toLowerCase().includes(search)||c.tags.some(t=>t.toLowerCase().includes(search)));
+  
+  let list = state.candidates;
+  if(state.activeJobId !== 'all') list = list.filter(c => c.jobId === state.activeJobId);
+  
+  const activeJobName = state.activeJobId === 'all' ? 'All Jobs' : (state.jobs.find(j=>j.id===state.activeJobId)?.title || 'Unknown Job');
+  $('#pipelineJobDescLabel').textContent = `Showing candidates for: ${activeJobName}`;
+
+  list = list.filter(c=>c.name.toLowerCase().includes(search) || c.tags.some(t=>t.toLowerCase().includes(search)));
+  
   if(sort==='score_high') list.sort((a,b)=>b.score-a.score);
   else if(sort==='score_low') list.sort((a,b)=>a.score-b.score);
   else list.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
 
-  board.innerHTML = PIPELINE_STAGES.map(stage=>{
+  $('#pipelineBoard').innerHTML = PIPELINE_STAGES.map(stage=>{
     const stageList = list.filter(c=>c.stage===stage);
     return `
       <div class="pipeline-column flex-shrink-0 w-80 flex flex-col gap-3" data-stage="${stage}">
@@ -1152,24 +1157,21 @@ function renderPipeline() {
 
 function renderCandidateCard(c) {
   const color=c.score>=80?'var(--accent)':c.score>=60?'var(--info)':c.score>=40?'var(--warning)':'var(--danger)';
+  const daysInStage = Math.floor((Date.now() - new Date(c.updatedAt||c.createdAt).getTime()) / 86400000);
   return `
-    <div class="candidate-card bg-card border border-border rounded-xl p-3" draggable="true" data-id="${c.id}" ondragstart="handleDragStart(event)" onclick="openCandidateDetail('${c.id}')">
+    <div class="candidate-card bg-card border border-border rounded-xl p-3 shadow-sm hover:border-border-light transition-colors" draggable="true" data-id="${c.id}" ondragstart="handleDragStart(event)" onclick="openCandidateDetail('${c.id}')">
       <div class="flex items-center justify-between mb-2">
         <span class="text-lg font-bold" style="color:${color}">${c.score}</span>
         <span class="text-[10px] text-muted">ATS ${c.ats||0}</span>
       </div>
-      <h4 class="text-sm font-semibold text-fg truncate mask-pii">${c.name}</h4>
-      <p class="text-xs text-muted truncate mb-2">${c.job}</p>
-      <div class="flex flex-wrap gap-1 mb-2">
-        ${(c.tags||[]).slice(0,3).map(t=>`<span class="tag-pill">${t}</span>`).join('')}
-        ${(c.tags||[]).length>3?`<span class="text-[10px] text-muted">+${c.tags.length-3}</span>`:''}
+      <h4 class="text-sm font-semibold text-fg truncate mask-pii">${escapeHTML(c.name)}</h4>
+      <p class="text-xs text-muted truncate mb-2">${escapeHTML(c.job)}</p>
+      <div class="flex flex-wrap gap-1 mb-2">${(c.tags||[]).slice(0,3).map(t=>`<span class="tag-pill">${escapeHTML(t)}</span>`).join('')}</div>
+      <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/50 text-[10px] text-muted">
+        <span><i class="fa-solid fa-clock"></i> ${daysInStage===0?'Today':daysInStage+'d'}</span>
+        ${c.notes?'<i class="fa-solid fa-note-sticky text-warning"></i>':''}
       </div>
-      <div class="flex items-center justify-between">
-        <span class="text-[10px] text-muted">${new Date(c.createdAt).toLocaleDateString()}</span>
-        ${c.notes?'<i class="fa-solid fa-note-sticky text-[10px] text-warning"></i>':''}
-      </div>
-    </div>
-  `;
+    </div>`;
 }
 
 function handleDragStart(e) { e.dataTransfer.setData('text/plain',e.target.dataset.id); e.target.classList.add('dragging'); }
@@ -1177,378 +1179,302 @@ function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('
 function handleDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
 function handleDrop(e) {
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
-  const id=e.dataTransfer.getData('text/plain');
-  const stage=e.currentTarget.dataset.stage;
+  const id=e.dataTransfer.getData('text/plain'), stage=e.currentTarget.dataset.stage;
   const c=state.candidates.find(x=>x.id===id);
   if(c&&c.stage!==stage){ 
     c.stage=stage; c.updatedAt=new Date().toISOString(); 
-    c.history = c.history ||[]; c.history.push({ date: new Date().toISOString(), action: `Moved to ${stage}` });
+    c.history.push({ date: new Date().toISOString(), action: `Moved to ${stage}` });
     saveCandidates(); renderPipeline(); showToast(`Moved to ${stage}`,'success'); 
   }
   $$('.candidate-card.dragging').forEach(el=>el.classList.remove('dragging'));
 }
 
-$('#pipelineSearch').addEventListener('input', renderPipeline);
+$('#pipelineSearch').addEventListener('input', debounce(renderPipeline));
 $('#pipelineSort').addEventListener('change', renderPipeline);
 
 // ========================
-// Candidate Detail Modal Tools
+// Candidate Modal (Tabs, Redaction, Notes)
 // ========================
+$$('.modal-tab').forEach(btn => {
+    btn.addEventListener('click', e => {
+        $$('.modal-tab').forEach(b => b.classList.remove('active', 'text-fg'));
+        $$('.modal-tab').forEach(b => b.classList.add('text-muted'));
+        e.currentTarget.classList.add('active', 'text-fg');
+        e.currentTarget.classList.remove('text-muted');
+        
+        $$('.modal-tab-content').forEach(c => c.classList.add('hidden'));
+        $('#' + e.currentTarget.dataset.tab).classList.remove('hidden');
+    });
+});
+
 function openCandidateDetail(id) {
   state.currentCandidateId=id;
   const c=state.candidates.find(x=>x.id===id); if(!c) return;
-  $('#candModalName').textContent=c.name;
-  $('#candModalJob').textContent=c.job;
+  
+  // Header
+  $('#candModalName').textContent=c.name; $('#candModalJob').textContent=c.job;
   const color=c.score>=80?'var(--accent)':c.score>=60?'var(--info)':c.score>=40?'var(--warning)':'var(--danger)';
-  $('#candModalBadge').innerHTML=`<span style="color:${color}">${c.score}</span>`;
-  $('#candModalBadge').style.borderColor=color;
-  const stageSel=$('#candModalStage'); stageSel.innerHTML=PIPELINE_STAGES.map(s=>`<option value="${s}" ${s===c.stage?'selected':''}>${s}</option>`).join('');
+  $('#candModalBadge').innerHTML=`<span style="color:${color}">${c.score}</span>`; $('#candModalBadge').style.borderColor=color;
+  $('#candModalStage').innerHTML=PIPELINE_STAGES.map(s=>`<option value="${s}" ${s===c.stage?'selected':''}>${s}</option>`).join('');
+  
+  // Overview Tab
   renderCandidateTags(c);
-  $('#candModalNotes').value=c.notes||'';
   $('#candModalSummary').textContent=c.analysis?.summary||'No summary.';
   
-  // Skills
-  const skills=c.analysis?.skills||{};
-  $('#upskillPlanResult').classList.add('hidden');
-  if(skills.matched_skills?.length||skills.missing_skills?.length){
+  const sk = c.analysis?.skills_analysis||{};
+  if(sk.matched_skills?.length||sk.missing_skills?.length){
     $('#candModalSkillsWrap').classList.remove('hidden');
-    $('#candModalMatched').innerHTML=(skills.matched_skills||[]).map(s=>`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-accent/10 text-xs text-accent mr-1 mb-1"><i class="fa-solid fa-check"></i>${s}</span>`).join('');
-    $('#candModalMissing').innerHTML=(skills.missing_skills||[]).map(s=>`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-danger/10 text-xs text-danger mr-1 mb-1"><i class="fa-solid fa-xmark"></i>${s}</span>`).join('');
+    $('#candModalMatched').innerHTML=(sk.matched_skills||[]).map(s=>`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-accent/10 text-xs text-accent mr-1 mb-1"><i class="fa-solid fa-check"></i>${escapeHTML(s)}</span>`).join('');
+    $('#candModalMissing').innerHTML=(sk.missing_skills||[]).map(s=>`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-danger/10 text-xs text-danger mr-1 mb-1"><i class="fa-solid fa-xmark"></i>${escapeHTML(s)}</span>`).join('');
   } else $('#candModalSkillsWrap').classList.add('hidden');
   
-  renderInterviewForCandidate(c);
-  $('#candModalBias').classList.add('hidden');
-  
-  // Outreach
+  const iq = c.analysis?.interview_questions||[];
+  $('#candModalInterview').innerHTML = iq.length ? iq.map((q,i)=>`<div class="text-sm text-muted bg-surface/60 border border-border/50 rounded-lg p-3 mb-2"><span class="text-accent font-bold text-xs mr-1">Q${i+1}.</span>${escapeHTML(q)}</div>`).join('') : '<p class="text-xs text-muted">No questions.</p>';
+
+  // Resume Viewer Tab
+  $('#resumeViewerContent').textContent = c.rawResume || 'No raw text stored for this older candidate.';
+  $('#viewOriginalBtn').onclick = () => { $('#resumeViewerContent').textContent = c.rawResume; updateViewTabs('orig'); };
+  $('#viewRedactedBtn').onclick = () => { $('#resumeViewerContent').textContent = c.redactedResume || 'Not redacted yet. Click "Redact PII via AI".'; updateViewTabs('redact'); };
+  updateViewTabs('orig');
+
+  // Notes Tab
+  $('#candModalNotes').value = c.notes||'';
+  switchToWriteMode();
   $('#outreachResult').classList.add('hidden');
-  $('#outreachText').value = '';
+  
+  $('#candModalTimeline').innerHTML = c.history.map(h => `<div class="relative"><div class="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-surface border border-accent"></div><p class="text-xs font-medium text-fg">${escapeHTML(h.action)}</p><p class="text-[10px] text-muted">${new Date(h.date).toLocaleString()}</p></div>`).join('');
 
-  // Timeline
-  const timeline = $('#candModalTimeline');
-  if(c.history && c.history.length) {
-     timeline.innerHTML = c.history.map(h => `<div class="relative"><div class="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-surface border border-accent"></div><p class="text-xs font-medium text-fg">${h.action}</p><p class="text-[10px] text-muted">${new Date(h.date).toLocaleString()}</p></div>`).join('');
-  } else {
-     timeline.innerHTML = '<p class="text-xs text-muted">No history.</p>';
-  }
-
+  // Default to first tab
+  $$('.modal-tab')[0].click();
   $('#candidateModal').classList.remove('hidden'); $('#candidateModal').classList.add('flex');
+}
+
+function updateViewTabs(active) {
+    if(active==='orig'){ $('#viewOriginalBtn').className='px-4 py-1.5 text-xs font-semibold rounded-md bg-card text-fg shadow-sm'; $('#viewRedactedBtn').className='px-4 py-1.5 text-xs font-medium rounded-md text-muted hover:text-fg transition-all'; }
+    else { $('#viewRedactedBtn').className='px-4 py-1.5 text-xs font-semibold rounded-md bg-card text-fg shadow-sm'; $('#viewOriginalBtn').className='px-4 py-1.5 text-xs font-medium rounded-md text-muted hover:text-fg transition-all'; }
 }
 
 function closeCandidateModal() { $('#candidateModal').classList.add('hidden'); $('#candidateModal').classList.remove('flex'); state.currentCandidateId=null; }
 
 $('#candModalStage').addEventListener('change',e=>{
   const c=state.candidates.find(x=>x.id===state.currentCandidateId); if(!c) return;
-  const newStage = e.target.value;
-  if(c.stage !== newStage) {
-    c.stage = newStage; c.updatedAt=new Date().toISOString(); 
-    c.history = c.history ||[]; c.history.push({ date: new Date().toISOString(), action: `Moved to ${newStage}` });
+  if(c.stage !== e.target.value) {
+    c.stage = e.target.value; c.updatedAt=new Date().toISOString(); 
+    c.history.push({ date: new Date().toISOString(), action: `Moved to ${c.stage}` });
     saveCandidates(); renderPipeline(); renderDashboard(); openCandidateDetail(c.id);
   }
 });
-$('#candModalNotes').addEventListener('input',e=>{
+
+// Notes Markdown Toggle
+$('#noteWriteBtn').addEventListener('click', switchToWriteMode);
+$('#notePreviewBtn').addEventListener('click', () => {
+    const raw = $('#candModalNotes').value;
+    $('#candModalNotes').classList.add('hidden');
+    const preview = $('#candModalNotesPreview');
+    preview.classList.remove('hidden');
+    preview.innerHTML = DOMPurify.sanitize(marked.parse(raw || '*No notes yet.*'));
+    $('#notePreviewBtn').classList.replace('text-muted','text-accent'); $('#noteWriteBtn').classList.replace('text-accent','text-muted');
+});
+function switchToWriteMode() {
+    $('#candModalNotes').classList.remove('hidden'); $('#candModalNotesPreview').classList.add('hidden');
+    $('#noteWriteBtn').classList.replace('text-muted','text-accent'); $('#notePreviewBtn').classList.replace('text-accent','text-muted');
+}
+$('#candModalNotes').addEventListener('input', debounce(e=>{
   const c=state.candidates.find(x=>x.id===state.currentCandidateId); if(!c) return;
   c.notes=e.target.value; c.updatedAt=new Date().toISOString(); saveCandidates();
+}));
+
+// Tags
+function renderCandidateTags(c) { $('#candModalTags').innerHTML = (c.tags||[]).map(t=>`<span class="tag-pill">${escapeHTML(t)}<button onclick="removeTag('${escapeHTML(t)}')"><i class="fa-solid fa-xmark"></i></button></span>`).join(''); }
+function removeTag(tag) { const c=state.candidates.find(x=>x.id===state.currentCandidateId); if(!c) return; c.tags=c.tags.filter(t=>t!==tag); saveCandidates(); renderCandidateTags(c); renderPipeline(); }
+$('#candTagInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim(); if(v){ const c=state.candidates.find(x=>x.id===state.currentCandidateId); if(c && !c.tags.includes(v)){ c.tags.push(v); saveCandidates(); renderCandidateTags(c); renderPipeline(); } } e.target.value=''; } });
+
+// Ask AI Local
+$('#askAiBtn').addEventListener('click', async () => {
+    const q = $('#aiQuestionInput').value.trim(); if (!q) return;
+    const c = state.candidates.find(x => x.id === state.currentCandidateId); if (!c || !c.rawResume) return;
+    $('#aiAnswerOutput').classList.remove('hidden'); $('#aiAnswerOutput').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Analyzing...';
+    try {
+        const prompt = `You are a recruiter assistant. Answer the user's question concisely based ONLY on the candidate's raw resume below.\nResume:\n${c.rawResume}\n\nQuestion: ${q}`;
+        const p = state.settings.provider, conf = state.settings.configs[p];
+        const res = await fetch(conf.url, { method: 'POST', headers: {'Content-Type':'application/json', ...(conf.key?{'Authorization':`Bearer ${conf.key}`}:{})}, body: JSON.stringify({model:conf.model, messages:[{role:'user',content:prompt}], temperature:0.2}) });
+        const data = await res.json();
+        $('#aiAnswerOutput').textContent = (data.choices?.[0]?.message?.content || '').trim();
+    } catch(e) { $('#aiAnswerOutput').textContent = 'Query failed.'; }
 });
 
-function renderCandidateTags(c) {
-  $('#candModalTags').innerHTML = (c.tags||[]).map(t=>`<span class="tag-pill">${t}<button onclick="removeTag('${t}')"><i class="fa-solid fa-xmark"></i></button></span>`).join('');
-}
-function removeTag(tag) {
-  const c=state.candidates.find(x=>x.id===state.currentCandidateId); if(!c) return;
-  c.tags=c.tags.filter(t=>t!==tag); saveCandidates(); renderCandidateTags(c); renderPipeline(); renderDashboard();
-}
-
-const candTagInput=$('#candTagInput');
-candTagInput.addEventListener('input',e=>{
-  const val=e.target.value.toLowerCase();
-  const allTags=[...new Set(state.candidates.flatMap(c=>c.tags||[]))];
-  const matches=allTags.filter(t=>t.toLowerCase().includes(val)&&t.toLowerCase()!==val);
-  const box=$('#candTagSuggestions');
-  if(val&&matches.length){ box.classList.remove('hidden'); box.innerHTML=matches.map(t=>`<div class="tag-suggestion px-3 py-2 text-xs text-muted" onclick="addTag('${t}')">${t}</div>`).join(''); }
-  else box.classList.add('hidden');
+// AI Redaction
+$('#redactResumeBtn').addEventListener('click', async () => {
+    const c = state.candidates.find(x => x.id === state.currentCandidateId); if (!c || !c.rawResume) return;
+    showToast('Redacting PII via AI...','info');
+    $('#redactResumeBtn').disabled = true; $('#redactResumeBtn').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+    try {
+        const prompt = `Redact all Personally Identifiable Information (PII) from this resume. Replace Names, Phone Numbers, Emails, Addresses, LinkedIn URLs, Company Names, and University/School Names with "[REDACTED]". Maintain the original formatting and spacing.\n\nResume:\n${c.rawResume}`;
+        const p = state.settings.provider, conf = state.settings.configs[p];
+        const res = await fetch(conf.url, { method: 'POST', headers: {'Content-Type':'application/json', ...(conf.key?{'Authorization':`Bearer ${conf.key}`}:{})}, body: JSON.stringify({model:conf.model, messages:[{role:'user',content:prompt}], temperature:0.1}) });
+        const data = await res.json();
+        c.redactedResume = (data.choices?.[0]?.message?.content || '').trim();
+        saveCandidates();
+        $('#viewRedactedBtn').click();
+        showToast('Resume Redacted!','success');
+    } catch(e) { showToast('Redaction failed','error'); }
+    $('#redactResumeBtn').disabled = false; $('#redactResumeBtn').innerHTML = '<i class="fa-solid fa-user-secret mr-1.5"></i>Redact PII via AI';
 });
-candTagInput.addEventListener('keydown',e=>{
-  if(e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim(); if(v) addTag(v); e.target.value=''; $('#candTagSuggestions').classList.add('hidden'); }
-});
-function addTag(tag) {
-  const c=state.candidates.find(x=>x.id===state.currentCandidateId); if(!c) return;
-  if(!c.tags.includes(tag)){ c.tags.push(tag); saveCandidates(); renderCandidateTags(c); renderPipeline(); renderDashboard(); }
-  candTagInput.value=''; $('#candTagSuggestions').classList.add('hidden');
-}
 
-// AI Outreach
+// Outreach AI
 async function generateEmail(type) {
   const c = state.candidates.find(x => x.id === state.currentCandidateId); if(!c) return;
   showToast(`Drafting ${type} email...`, 'info');
   try {
-     const prompt = `Write a professional recruiter email to a candidate named ${c.name} for the ${c.job} position.
-     Type of email: ${type === 'interview' ? 'Invitation for a technical interview based on their strong fit.' : 'Polite rejection/pass.'}
-     ${type === 'reject' ? 'Keep it constructive but final.' : 'Mention we were impressed by ' + (c.analysis?.strengths?.[0] || 'their background') + '.'}
-     Return ONLY the email text, no markdown.`;
+     let prompt = `Write a professional recruiter email to candidate ${c.name} for the ${c.job} position. Type: ${type === 'interview' ? 'Invitation for interview.' : 'Polite rejection.'} Return ONLY the email text.`;
+     if (type === 'reference') {
+         prompt = `Draft a professional email to a former manager/reference for candidate ${c.name} (${c.job}). Based on our screening, we have concerns about: ${(c.analysis?.weaknesses||[]).join(', ')}. Politely ask specific questions to investigate these gaps. Return ONLY the email text.`;
+     }
+     
      const p = state.settings.provider, conf = state.settings.configs[p];
-     const headers={'Content-Type':'application/json'}; if(conf.key) headers['Authorization']=`Bearer ${conf.key}`;
-     const res=await fetch(conf.url,{method:'POST',headers,body:JSON.stringify({model:conf.model,messages:[{role:'user',content:prompt}],temperature:0.4,stream:false})});
-     const data=await res.json(); const content=data.choices?.[0]?.message?.content || data.response || '';
-     $('#outreachResult').classList.remove('hidden');
-     $('#outreachText').value = content.trim();
+     const res=await fetch(conf.url,{method:'POST',headers:{'Content-Type':'application/json', ...(conf.key?{'Authorization':`Bearer ${conf.key}`}:{})},body:JSON.stringify({model:conf.model,messages:[{role:'user',content:prompt}],temperature:0.4})});
+     const data=await res.json(); 
+     $('#outreachResult').classList.remove('hidden'); $('#outreachText').value = (data.choices?.[0]?.message?.content || '').trim();
      showToast('Draft ready', 'success');
   } catch(e) { showToast('Failed to draft email', 'error'); }
 }
-function copyOutreach() {
-  navigator.clipboard.writeText($('#outreachText').value).then(()=>showToast('Copied!','success'));
-}
+function copyOutreach() { navigator.clipboard.writeText($('#outreachText').value).then(()=>showToast('Copied!','success')); }
 
-// AI Upskill Plan
-async function generateUpskillPlan() {
-  const c = state.candidates.find(x => x.id === state.currentCandidateId); if(!c) return;
-  if(!c.analysis?.skills?.missing_skills?.length) return showToast('No missing skills identified','info');
-  showToast('Generating upskill plan...','info');
-  try {
-     const prompt = `Create a brief, actionable 30-day upskilling plan for a ${c.job} candidate missing these skills: ${c.analysis.skills.missing_skills.join(', ')}. Provide 3 bullet points with realistic resources (certifications, courses, or project ideas). Return raw text, no markdown blocks.`;
-     const p = state.settings.provider, conf = state.settings.configs[p];
-     const headers={'Content-Type':'application/json'}; if(conf.key) headers['Authorization']=`Bearer ${conf.key}`;
-     const res=await fetch(conf.url,{method:'POST',headers,body:JSON.stringify({model:conf.model,messages:[{role:'user',content:prompt}],temperature:0.3,stream:false})});
-     const data=await res.json(); const content=data.choices?.[0]?.message?.content || data.response || '';
-     const el = $('#upskillPlanResult');
-     el.classList.remove('hidden'); el.textContent = content.trim();
-     showToast('Upskill plan generated','success');
-  } catch(e) { showToast('Failed to generate upskill plan', 'error'); }
-}
-
-function renderInterviewForCandidate(c) {
-  const container=$('#candModalInterview');
-  if(c.analysis?.interview_questions?.length){
-    container.innerHTML=c.analysis.interview_questions.map((q,i)=>`<div class="text-sm text-muted bg-surface/60 border border-border/50 rounded-lg p-3"><span class="text-accent font-bold text-xs">Q${i+1}.</span> ${q}</div>`).join('');
-  } else { container.innerHTML='<p class="text-xs text-muted">No questions generated yet. Click Generate.</p>'; }
-}
-
-async function generateInterviewForCandidate() {
-  const c=state.candidates.find(x=>x.id===state.currentCandidateId); if(!c) return;
-  showToast('Generating questions...','info');
-  try {
-    const prompt=`Generate 3 technical, 2 behavioral, and 2 scenario interview questions for a candidate with this profile:
-Job: ${c.job}
-Strengths: ${(c.analysis?.strengths||[]).join(', ')}
-Gaps: ${(c.analysis?.weaknesses||[]).join(', ')}
-Return ONLY JSON: {"technical":[{"question":"","rationale":""}],"behavioral":[...],"scenario":[...]}`;
-    const p=state.settings.provider, conf=state.settings.configs[p];
-    const headers={'Content-Type':'application/json'}; if(conf.key) headers['Authorization']=`Bearer ${conf.key}`;
-    const res=await fetch(conf.url,{method:'POST',headers,body:JSON.stringify({model:conf.model,messages:[{role:'user',content:prompt}],temperature:0.3,stream:false})});
-    const data=await res.json(); const content=data.choices?.[0]?.message?.content||'';
-    const parsed=parseJSON(content);
-    const questions=[...parsed.technical,...parsed.behavioral,...parsed.scenario].map(q=>q.question||q);
-    c.analysis.interview_questions=questions; saveCandidates(); renderInterviewForCandidate(c); showToast('Questions generated','success');
-  }catch(e){ showToast('Failed to generate questions','error'); }
-}
-
-async function runBiasAuditForCandidate() {
-  const c=state.candidates.find(x=>x.id===state.currentCandidateId); if(!c) return;
-  showToast('Running bias audit...','info');
-  try {
-    const prompt=`Audit this candidate evaluation for unconscious bias. Job: ${c.job}. Verdict: ${c.rec}. Strengths: ${(c.analysis?.strengths||[]).join(', ')}. Gaps: ${(c.analysis?.weaknesses||[]).join(', ')}.
-Return ONLY JSON: {"risk_score":<0-100>,"risk_level":"<Low|Medium|High>","findings":[{"type":"<gender|age|ethnicity|other>","description":"","severity":"<low|medium|high>"}],"mitigations":["<string>"]}`;
-    const p=state.settings.provider, conf=state.settings.configs[p];
-    const headers={'Content-Type':'application/json'}; if(conf.key) headers['Authorization']=`Bearer ${conf.key}`;
-    const res=await fetch(conf.url,{method:'POST',headers,body:JSON.stringify({model:conf.model,messages:[{role:'user',content:prompt}],temperature:0.2,stream:false})});
-    const data=await res.json(); const content=data.choices?.[0]?.message?.content||'';
-    const parsed=parseJSON(content);
-    const wrap=$('#candModalBias'); wrap.classList.remove('hidden');
-    const color=parsed.risk_score>=60?'var(--danger)':parsed.risk_score>=30?'var(--warning)':'var(--accent)';
-    wrap.innerHTML=`<div class="mb-2 flex items-center gap-2"><span class="text-sm font-semibold text-fg">Risk Score:</span><span class="text-lg font-bold" style="color:${color}">${parsed.risk_score} - ${parsed.risk_level}</span></div>
-    <ul class="space-y-2 mb-3">${(parsed.findings||[]).map(f=>`<li class="text-xs text-muted flex gap-2"><i class="fa-solid fa-triangle-exclamation mt-0.5" style="color:${color}"></i><span><strong>${f.type}:</strong> ${f.description}</span></li>`).join('')}</ul>
-    <div class="text-xs font-semibold text-fg mb-1">Mitigations:</div><ul class="space-y-1">${(parsed.mitigations||[]).map(m=>`<li class="text-xs text-muted flex gap-2"><i class="fa-solid fa-check text-accent mt-0.5"></i><span>${m}</span></li>`).join('')}</ul>`;
-  }catch(e){ showToast('Bias audit failed','error'); }
-}
-
-function reScoreCandidate() {
-  showToast('Re-scoring not yet implemented with stored raw text. Re-analyze from screener.','warning');
-}
 function deleteCandidate() {
   const c=state.candidates.find(x=>x.id===state.currentCandidateId); if(!c) return;
-  if(confirm(`Delete ${c.name}?`)){ state.candidates=state.candidates.filter(x=>x.id!==c.id); saveCandidates(); closeCandidateModal(); renderPipeline(); renderDashboard(); showToast('Candidate deleted','success'); }
+  if(confirm(`Delete ${c.name}?`)){ state.candidates=state.candidates.filter(x=>x.id!==c.id); saveCandidates(); closeCandidateModal(); renderPipeline(); renderDashboard(); showToast('Deleted','success'); }
 }
 
 // ========================
-// Export System
+// Chat with Pipeline Agent
 // ========================
-function openExportModal() { $('#exportModal').classList.remove('hidden'); $('#exportModal').classList.add('flex'); }
-function closeExportModal() { $('#exportModal').classList.add('hidden'); $('#exportModal').classList.remove('flex'); }
+$('#fabChat').addEventListener('click', () => { $('#pipelineChat').classList.add('open'); $('#pipelineChat').classList.remove('hidden'); });
+$('#closeFabChat').addEventListener('click', () => { $('#pipelineChat').classList.remove('open'); setTimeout(()=>$('#pipelineChat').classList.add('hidden'),300); });
 
-function exportAll(format) {
-  if(format==='json'){
-    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(state.candidates,null,2)],{type:'application/json'}));
-    a.download=`screenforge-candidates-${Date.now()}.json`; a.click();
-  } else if(format==='csv'){
-    const headers=['ID','Name','Job','Stage','Score','ATS','Verdict','Tags','Notes','Created'];
-    const rows=state.candidates.map(c=>[c.id,`"${c.name}"`,`"${c.job}"`,c.stage,c.score,c.ats||0,`"${c.rec}"`,`"${(c.tags||[]).join(';')}"`,`"${(c.notes||'').replace(/"/g,'""')}"`,c.createdAt]);
-    const csv=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
-    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`screenforge-candidates-${Date.now()}.csv`; a.click();
-  } else if(format==='md'){
-    const md=state.candidates.map(c=>`# ${c.name}\n**Job:** ${c.job} | **Stage:** ${c.stage} | **Score:** ${c.score} | **ATS:** ${c.ats||0}\n\n**Verdict:** ${c.rec}\n\n**Summary:**\n${c.analysis?.summary||'N/A'}\n\n**Strengths:**\n${(c.analysis?.strengths||[]).map(s=>'- '+s).join('\n')}\n\n**Gaps:**\n${(c.analysis?.weaknesses||[]).map(w=>'- '+w).join('\n')}\n\n---\n`).join('\n');
-    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown'})); a.download=`screenforge-reports-${Date.now()}.md`; a.click();
-  } else if(format==='pipeline_csv'){
-    const headers=['Stage','Name','Job','Score','ATS','Verdict'];
-    const rows=[];
-    PIPELINE_STAGES.forEach(stage=>{ state.candidates.filter(c=>c.stage===stage).forEach(c=>rows.push([stage,`"${c.name}"`,`"${c.job}"`,c.score,c.ats||0,`"${c.rec}"`])); });
-    const csv=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
-    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`screenforge-pipeline-${Date.now()}.csv`; a.click();
-  }
-  showToast(`Exported ${format}`,'success'); closeExportModal();
-}
+$('#sendChatBtn').addEventListener('click', async () => {
+    const input = $('#chatInput').value.trim(); if(!input) return;
+    const chatBox = $('#chatMessages');
+    chatBox.innerHTML += `<div class="bg-accent text-bg p-3 rounded-xl rounded-tr-none self-end max-w-[85%] leading-relaxed">${escapeHTML(input)}</div>`;
+    $('#chatInput').value = '';
+    
+    // Condense Context (Max 50 to save tokens)
+    let contextList = state.candidates;
+    if(state.activeJobId !== 'all') contextList = contextList.filter(c => c.jobId === state.activeJobId);
+    
+    const summarized = contextList.slice(0, 50).map(c => ({ Name: c.name, Job: c.job, Stage: c.stage, Score: c.score, Verdict: c.rec }));
+    const dbContext = JSON.stringify(summarized);
+    
+    const loadingId = 'msg_'+Date.now();
+    chatBox.innerHTML += `<div id="${loadingId}" class="bg-surface border border-border/50 text-muted p-3 rounded-xl rounded-tl-none self-start max-w-[85%] leading-relaxed"><i class="fa-solid fa-spinner fa-spin"></i> Querying DB...</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
 
-function exportCandidateReport(format) {
-  const c=state.candidates.find(x=>x.id===state.currentCandidateId); if(!c) return;
-  if(format==='json'){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(c,null,2)],{type:'application/json'})); a.download=`${c.name.replace(/\s+/g,'_')}-report.json`; a.click(); }
-  else if(format==='md'){
-    const md=`# Candidate Report: ${c.name}\n**Job:** ${c.job}\n**Stage:** ${c.stage}\n**Score:** ${c.score}/100 | **ATS:** ${c.ats||0}/100\n**Verdict:** ${c.rec}\n\n## Summary\n${c.analysis?.summary||''}\n\n## Skills\n**Matched:** ${(c.analysis?.skills?.matched_skills||[]).join(', ')}\n**Missing:** ${(c.analysis?.skills?.missing_skills||[]).join(', ')}\n\n## Interview Questions\n${(c.analysis?.interview_questions||[]).map((q,i)=>`${i+1}. ${q}`).join('\n')}\n\n## Notes\n${c.notes||'None'}\n`;
-    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown'})); a.download=`${c.name.replace(/\s+/g,'_')}-report.md`; a.click();
-  } else if(format==='pdf'){
-    const win=window.open('','_blank');
-    win.document.write(`<html><head><title>${c.name} - ScreenForge Report</title><style>body{font-family:'Outfit',sans-serif;max-width:700px;margin:40px auto;padding:30px;color:#0f1c17;line-height:1.6} .header{text-align:center;border-bottom:3px solid #059669;padding-bottom:20px;margin-bottom:30px} .logo{font-size:24px;font-weight:800;color:#059669} .score-box{display:inline-block;padding:10px 20px;background:#f0fdf4;border-radius:12px;font-size:32px;font-weight:800;color:#059669;margin:10px 0} .section{margin:25px 0} h2{color:#059669;font-size:18px;border-bottom:1px solid #e5e7eb;padding-bottom:8px} ul{padding-left:20px} .badge{display:inline-block;padding:4px 12px;border-radius:999px;background:#e4ece7;font-weight:600;font-size:14px} .footer{margin-top:40px;text-align:center;color:#9ca3af;font-size:12px}</style></head><body>
-      <div class="header"><div class="logo"><i class="fa-solid fa-shield-halved"></i> ScreenForge</div><p>AI-Powered Candidate Report</p></div>
-      <h1>${c.name}</h1><p><span class="badge">${c.stage}</span> <span class="badge">${c.rec}</span></p>
-      <div class="score-box">${c.score}<span style="font-size:16px;color:#6b7280">/100</span></div>
-      <div class="section"><h2>Summary</h2><p>${c.analysis?.summary||'No summary available.'}</p></div>
-      <div class="section"><h2>Skills Analysis</h2><p><strong>Matched:</strong> ${(c.analysis?.skills?.matched_skills||[]).join(', ')||'None'}</p><p><strong>Missing:</strong> ${(c.analysis?.skills?.missing_skills||[]).join(', ')||'None'}</p></div>
-      <div class="section"><h2>Strengths</h2><ul>${(c.analysis?.strengths||[]).map(s=>'<li>'+s+'</li>').join('')||'<li>None</li>'}</ul></div>
-      <div class="section"><h2>Gaps & Concerns</h2><ul>${(c.analysis?.weaknesses||[]).map(w=>'<li>'+w+'</li>').join('')||'<li>None</li>'}</ul></div>
-      <div class="section"><h2>Interview Questions</h2><ol>${(c.analysis?.interview_questions||[]).map(q=>'<li>'+q+'</li>').join('')||'<li>None generated</li>'}</ol></div>
-      <div class="section"><h2>Recruiter Notes</h2><p>${c.notes||'No notes.'}</p></div>
-      <div class="footer">Generated by ScreenForge AI &bull; ${new Date().toLocaleDateString()}</div>
-    </body></html>`);
-    win.document.close(); setTimeout(()=>win.print(),500);
-  }
-}
+    try {
+        const prompt = `You are an internal recruiter ATS assistant. Answer the user's question using ONLY the provided candidate database context (JSON format). Be concise, helpful, and direct.\n\nDatabase:\n${dbContext}\n\nUser: ${input}`;
+        const p = state.settings.provider, conf = state.settings.configs[p];
+        const res = await fetch(conf.url, { method: 'POST', headers: {'Content-Type':'application/json', ...(conf.key?{'Authorization':`Bearer ${conf.key}`}:{})}, body: JSON.stringify({model:conf.model, messages:[{role:'user',content:prompt}], temperature:0.2}) });
+        const data = await res.json();
+        const reply = (data.choices?.[0]?.message?.content || 'No data').trim();
+        
+        $(`#${loadingId}`).outerHTML = `<div class="bg-surface border border-border/50 text-fg p-3 rounded-xl rounded-tl-none self-start max-w-[85%] leading-relaxed markdown-content">${DOMPurify.sanitize(marked.parse(reply))}</div>`;
+    } catch(e) {
+        $(`#${loadingId}`).outerHTML = `<div class="bg-danger/10 text-danger p-3 rounded-xl self-start text-xs">Failed to connect to AI.</div>`;
+    }
+    chatBox.scrollTop = chatBox.scrollHeight;
+});
+$('#chatInput').addEventListener('keydown', e => { if(e.key==='Enter') $('#sendChatBtn').click(); });
 
 // ========================
-// Dashboard
+// Dashboard & Charts
 // ========================
 function renderDashboard() {
   const search=($('#dashSearch').value||'').toLowerCase();
   const sort=$('#dashSort').value;
   const filterRec=$('#dashFilter').value;
-  let filtered=state.candidates.filter(h=>{
-    if(search && !h.name.toLowerCase().includes(search) && !h.job.toLowerCase().includes(search)) return false;
-    if(filterRec!=='all'){ const rec=h.rec.toLowerCase(); if(filterRec==='strong'&&!rec.includes('strong'))return false; if(filterRec==='recommend'&&!rec.includes('recommend'))return false; if(filterRec==='consider'&&!rec.includes('consider'))return false; if(filterRec==='pass'&&!rec.includes('pass'))return false; }
+  
+  let filtered = state.candidates;
+  if(state.activeJobId !== 'all') filtered = filtered.filter(c => c.jobId === state.activeJobId);
+  
+  filtered=filtered.filter(h=>{
+    if(search && !(h.name||'').toLowerCase().includes(search) && !(h.job||'').toLowerCase().includes(search)) return false;
+    if(filterRec!=='all'){ const rec=(h.rec||'').toLowerCase(); if(filterRec==='strong'&&!rec.includes('strong'))return false; if(filterRec==='pass'&&!rec.includes('pass'))return false; }
     return true;
   });
   if(sort==='score_high') filtered.sort((a,b)=>b.score-a.score);
-  else if(sort==='score_low') filtered.sort((a,b)=>a.score-b.score);
-  else if(sort==='ats_high') filtered.sort((a,b)=>b.ats-a.ats);
-  const tot=state.candidates.length;
+  else filtered.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  
+  const tot=filtered.length;
   $('#dashTotal').textContent=tot;
-  if(tot===0){ $('#dashAvgScore').textContent='0'; $('#dashPassRate').textContent='0%'; $('#dashAvgAts').textContent='0'; $('#dashHistoryList').innerHTML=''; $('#dashEmptyState').classList.remove('hidden'); $('#compareBtn').classList.add('hidden'); return; }
+  if(tot===0){ 
+      $('#dashAvgScore').textContent='0'; $('#dashPassRate').textContent='0%'; $('#dashActivePipe').textContent='0';
+      $('#dashHistoryList').innerHTML=''; $('#dashEmptyState').classList.remove('hidden'); drawCharts([]); return; 
+  }
+  
   $('#dashEmptyState').classList.add('hidden');
-  const avg=Math.round(state.candidates.reduce((a,b)=>a+b.score,0)/tot);
-  const passes=state.candidates.filter(h=>h.rec.toLowerCase().includes('recommend')).length;
-  const avgAts=Math.round(state.candidates.reduce((a,b)=>a+(b.ats||0),0)/tot);
-  $('#dashAvgScore').textContent=avg; $('#dashPassRate').textContent=Math.round((passes/tot)*100)+'%'; $('#dashAvgAts').textContent=avgAts;
-  if(filtered.length>1) $('#compareBtn').classList.remove('hidden'); else $('#compareBtn').classList.add('hidden');
-  $('#dashHistoryList').innerHTML=filtered.map(h=>{
+  const avg=Math.round(filtered.reduce((a,b)=>a+b.score,0)/tot);
+  const passes=filtered.filter(h=>(h.rec||'').toLowerCase().includes('recommend')).length;
+  const activeCount = filtered.filter(h=>h.stage!=='Rejected' && h.stage!=='Hired').length;
+  
+  $('#dashAvgScore').textContent=avg; $('#dashPassRate').textContent=Math.round((passes/tot)*100)+'%'; $('#dashActivePipe').textContent=activeCount;
+  
+  $('#dashHistoryList').innerHTML=filtered.slice(0, 100).map(h=>{
     let sc=h.score>=80?'text-accent':h.score>=60?'text-info':h.score>=40?'text-warning':'text-danger';
     let bg=h.score>=80?'bg-accent/10 border-accent/20':h.score>=60?'bg-info/10 border-info/20':h.score>=40?'bg-warning/10 border-warning/20':'bg-danger/10 border-danger/20';
     let d=new Date(h.createdAt).toLocaleDateString();
-    const isSel=state.selectedForCompare.has(h.id);
-    return `<div class="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-surface/50 hover:bg-card transition-colors comparison-row">
-      <div class="flex items-center gap-4"><input type="checkbox" class="compare-check rounded border-border bg-surface text-accent focus:ring-0" data-id="${h.id}" ${isSel?'checked':''}>
+    return `<div class="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-surface/50 hover:bg-card transition-colors cursor-pointer" onclick="openCandidateDetail('${h.id}')">
+      <div class="flex items-center gap-4">
         <div class="w-12 h-12 rounded-full border ${bg} flex items-center justify-center"><span class="font-bold ${sc}">${h.score}</span></div>
-        <div><h4 class="text-sm font-semibold text-fg mask-pii">${h.name}</h4><p class="text-xs text-muted truncate max-w-[200px] sm:max-w-[300px]">${h.job}</p><p class="text-[10px] text-muted mt-0.5">${h.stage} &bull; ATS: ${h.ats||0}</p></div>
+        <div><h4 class="text-sm font-semibold text-fg mask-pii">${escapeHTML(h.name)}</h4><p class="text-xs text-muted truncate max-w-[200px] sm:max-w-[300px]">${escapeHTML(h.job)}</p></div>
       </div>
-      <div class="text-right"><p class="text-xs font-medium text-fg mb-1">${h.rec.split('-')[0].trim()}</p><p class="text-[10px] text-muted">${d}</p></div>
+      <div class="text-right"><p class="text-xs font-medium text-fg mb-1">${escapeHTML((h.rec||'').split('-')[0].trim())}</p><p class="text-[10px] text-muted">${d}</p></div>
     </div>`;
   }).join('');
-  $$('.compare-check').forEach(cb=>cb.addEventListener('change',e=>{ const id=e.target.dataset.id; if(e.target.checked) state.selectedForCompare.add(id); else state.selectedForCompare.delete(id); }));
-  drawCharts();
+  
+  drawCharts(filtered);
 }
 
-$('#dashSearch').addEventListener('input',renderDashboard);
-$('#dashSort').addEventListener('change',renderDashboard);
-$('#dashFilter').addEventListener('change',renderDashboard);
-$('#selectAll').addEventListener('change',e=>{ if(e.target.checked) state.candidates.forEach(h=>state.selectedForCompare.add(h.id)); else state.selectedForCompare.clear(); renderDashboard(); });
+$('#dashSearch').addEventListener('input', debounce(renderDashboard));
+$('#dashSort').addEventListener('change', renderDashboard);
+$('#dashFilter').addEventListener('change', renderDashboard);
+$('#clearHistoryBtn').addEventListener('click',()=>{ if(confirm('Clear ALL candidate data?')){ state.candidates=[]; saveCandidates(); renderDashboard(); renderPipeline(); showToast('Database Cleared','success'); } });
 
-$('#compareBtn').addEventListener('click',()=>{
-  const selected=state.candidates.filter(h=>state.selectedForCompare.has(h.id));
-  if(selected.length<2) return showToast('Select at least 2 candidates','warning');
-  $('#comparisonTableBody').innerHTML=selected.map(h=>{
-    let sc=h.score>=80?'text-accent':h.score>=60?'text-info':h.score>=40?'text-warning':'text-danger';
-    const cats=h.analysis?.categories||{};
-    const getCat=k=>{ const c=Object.entries(cats).find(([key])=>key===k||key.includes(k)); return c?c[1].score:'-'; };
-    return `<tr class="border-b border-border/50 comparison-row"><td class="py-3 text-sm font-medium text-fg mask-pii">${h.name}</td><td class="py-3 text-center font-bold ${sc}">${h.score}</td><td class="py-3 text-center text-sm text-muted">${h.ats||0}</td><td class="py-3 text-center text-sm text-muted">${getCat('skill')}</td><td class="py-3 text-center text-sm text-muted">${getCat('experience')}</td><td class="py-3 text-center text-sm text-muted">${getCat('education')}</td><td class="py-3 text-center text-sm text-muted">${getCat('culture')}</td><td class="py-3 text-xs font-medium text-fg">${h.rec.split('-')[0].trim()}</td></tr>`;
-  }).join('');
-  $('#comparisonModal').classList.remove('hidden'); $('#comparisonModal').classList.add('flex');
-});
-function closeComparison() { $('#comparisonModal').classList.add('hidden'); $('#comparisonModal').classList.remove('flex'); }
+Chart.defaults.color = '#7a9488'; Chart.defaults.font.family = 'Outfit';
+function drawCharts(filteredCandidates) {
+  const gridColor = document.documentElement.getAttribute('data-theme') === 'light' ? '#dde5e1' : '#243530';
+  if(scoreChartInst) scoreChartInst.destroy(); if(pipelineChartInst) pipelineChartInst.destroy();
+  if (!filteredCandidates || filteredCandidates.length === 0) return;
 
-$('#clearHistoryBtn').addEventListener('click',()=>{ if(confirm('Clear all candidates?')){ state.candidates=[]; state.selectedForCompare.clear(); saveCandidates(); renderDashboard(); renderPipeline(); showToast('All cleared','success'); } });
-
-// ========================
-// Charts (Canvas)
-// ========================
-function drawCharts() {
-  drawScoreDist(); drawPipelineChart();
-}
-function drawScoreDist() {
-  const canvas=$('#scoreDistChart'); if(!canvas) return;
-  const ctx=canvas.getContext('2d');
-  const dpr=window.devicePixelRatio||1;
-  const rect=canvas.parentElement.getBoundingClientRect();
-  canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
-  ctx.scale(dpr,dpr);
-  const w=rect.width, h=rect.height;
-  ctx.clearRect(0,0,w,h);
   const buckets=[0,0,0,0,0];
-  state.candidates.forEach(c=>{ const s=c.score; if(s<=20)buckets[0]++; else if(s<=40)buckets[1]++; else if(s<=60)buckets[2]++; else if(s<=80)buckets[3]++; else buckets[4]++; });
-  const max=Math.max(...buckets,1); const barW=(w-80)/5; const labels=['0-20','21-40','41-60','61-80','81-100'];
-  const colors=['#ef4444','#f59e0b','#06b6d4','#10b981','#059669'];
-  buckets.forEach((count,i)=>{
-    const bh=(count/max)*(h-40);
-    const x=40+i*barW; const y=h-bh-20;
-    ctx.fillStyle=colors[i]; ctx.fillRect(x,y,barW-10,bh);
-    ctx.fillStyle='var(--fg)'; ctx.font='11px Outfit'; ctx.textAlign='center';
-    ctx.fillText(count,x+(barW-10)/2,y-6);
-    ctx.fillStyle='var(--muted)'; ctx.fillText(labels[i],x+(barW-10)/2,h-5);
+  filteredCandidates.forEach(c=>{ const s=c.score; if(s<=20)buckets[0]++; else if(s<=40)buckets[1]++; else if(s<=60)buckets[2]++; else if(s<=80)buckets[3]++; else buckets[4]++; });
+  
+  scoreChartInst = new Chart(document.getElementById('scoreDistChart'), {
+    type: 'bar', data: { labels:['0-20','21-40','41-60','61-80','81-100'], datasets:[{ label: 'Candidates', data: buckets, backgroundColor:['#ef4444','#f59e0b','#06b6d4','#10b981','#059669'], borderRadius: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
+  });
+
+  const counts=PIPELINE_STAGES.map(s=>filteredCandidates.filter(c=>c.stage===s).length);
+  pipelineChartInst = new Chart(document.getElementById('pipelineChart'), {
+    type: 'bar', data: { labels: PIPELINE_STAGES, datasets:[{ label: 'Candidates', data: counts, backgroundColor: Object.values(STAGE_COLORS), borderRadius: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
   });
 }
-function drawPipelineChart() {
-  const canvas=$('#pipelineChart'); if(!canvas) return;
-  const ctx=canvas.getContext('2d');
-  const dpr=window.devicePixelRatio||1;
-  const rect=canvas.parentElement.getBoundingClientRect();
-  canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
-  ctx.scale(dpr,dpr);
-  const w=rect.width, h=rect.height;
-  ctx.clearRect(0,0,w,h);
-  const counts=PIPELINE_STAGES.map(s=>state.candidates.filter(c=>c.stage===s).length);
-  const max=Math.max(...counts,1); const barW=(w-80)/6;
-  counts.forEach((count,i)=>{
-    const bh=(count/max)*(h-40);
-    const x=40+i*barW; const y=h-bh-20;
-    ctx.fillStyle=STAGE_COLORS[PIPELINE_STAGES[i]]; ctx.fillRect(x,y,barW-10,bh);
-    ctx.fillStyle='var(--fg)'; ctx.font='11px Outfit'; ctx.textAlign='center';
-    ctx.fillText(count,x+(barW-10)/2,y-6);
-    ctx.fillStyle='var(--muted)'; ctx.font='10px Outfit'; ctx.fillText(PIPELINE_STAGES[i],x+(barW-10)/2,h-5);
-  });
+
+// Exports
+function openExportModal() { $('#exportModal').classList.remove('hidden'); $('#exportModal').classList.add('flex'); }
+function closeExportModal() { $('#exportModal').classList.add('hidden'); $('#exportModal').classList.remove('flex'); }
+function exportAll(format) {
+  let data = state.candidates;
+  if(state.activeJobId !== 'all') data = data.filter(c => c.jobId === state.activeJobId);
+
+  if(format==='csv'){
+    const headers=['Name','Job','Stage','Score','ATS','Verdict','Created'];
+    const rows=data.map(c=>[`"${c.name}"`,`"${c.job}"`,c.stage,c.score,c.ats||0,`"${c.rec}"`,c.createdAt]);
+    const csv=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`screenforge-export.csv`; a.click();
+  } else if(format==='json'){
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})); a.download=`screenforge-export.json`; a.click();
+  }
+  closeExportModal(); showToast('Exported','success');
 }
-window.addEventListener('resize',drawCharts);
-
-// ========================
-// Samples
-// ========================
-$('#loadSampleJob').addEventListener('click',()=>{
-  jobDesc.value="Senior Full-Stack Engineer\n\nWe are looking for an experienced engineer to lead our platform team.\n\nRequirements:\n- 5+ years with Python (Django/FastAPI) and TypeScript (React/Next.js)\n- Strong experience with AWS (ECS, Lambda, RDS) and infrastructure as code (Terraform)\n- Deep knowledge of PostgreSQL, Redis, and event-driven architecture (Kafka/SQS)\n- CI/CD expertise with GitHub Actions or GitLab CI\n- Experience mentoring junior developers and conducting code reviews\n- Excellent written and verbal communication skills\n- B.S. in Computer Science or equivalent experience";
-  updateAnalyzeButton();
-  $('#generateBooleanBtn').classList.remove('hidden');
-});
-$('#loadSampleResume').addEventListener('click',()=>{
-  resumeText.value="Alex Johnson\nalex.johnson@email.com | (555) 123-4567 | linkedin.com/in/alexj\n\nSUMMARY\nSenior software engineer with 6 years of experience building scalable web applications and microservices. Passionate about clean code, system design, and mentoring teams.\n\nEXPERIENCE\nSenior Software Engineer | TechCorp | 2021 - Present\n- Led migration from monolith to microservices using Python/FastAPI and Docker, reducing deployment time by 60%\n- Architected real-time data pipeline processing 2M+ events/day with Kafka and Redis\n- Mentored team of 4 junior engineers through weekly code reviews and pair programming\n- Implemented CI/CD pipelines with GitHub Actions, achieving 99.9% deployment success rate\n\nSoftware Engineer | StartupXYZ | 2019 - 2021\n- Built customer dashboard using React and TypeScript serving 50k+ daily active users\n- Designed PostgreSQL schema and query optimization reducing API latency by 40%\n\nSKILLS\nPython, FastAPI, Django, TypeScript, React, Next.js, AWS (EC2, S3, Lambda), Docker, Kubernetes, PostgreSQL, Redis, Kafka, Terraform, GitHub Actions\n\nEDUCATION\nB.S. Computer Science | State University | 2019";
-  updateAnalyzeButton();
-});
-
-// ========================
-// Init
-// ========================
-updateGlobalUI();
-renderDashboard();
 </script>
 </body>
 </html>
