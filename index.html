@@ -809,6 +809,7 @@ async function extractTextFromFile(file) {
 // ========================
 const PROVIDERS = {
   openrouter: { name: 'OpenRouter', defaultUrl: 'https://openrouter.ai/api/v1/chat/completions', needsKey: true, models:[
+    { id: 'nvidia/nemotron-3-super-120b-a12b:free', name: 'Nemotron 3 Super 120B (Free)' },
     { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
     { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
     { id: 'openai/gpt-4o', name: 'GPT-4o' }
@@ -846,7 +847,7 @@ let defaultSettings = {
   persona: 'expert technical recruiter',
   flags: { pipeline: true, batch: true, rubrics: true, interview: true, bias: true, export: true, coverLetter: true },
   configs: {
-    openrouter: { url: PROVIDERS.openrouter.defaultUrl, key: '', model: 'google/gemini-2.0-flash-001' },
+    openrouter: { url: PROVIDERS.openrouter.defaultUrl, key: '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', model: 'nvidia/nemotron-3-super-120b-a12b:free' },
     nvidia: { url: PROVIDERS.nvidia.defaultUrl, key: '', model: 'meta/llama-3.3-70b-instruct' },
     ollama: { url: PROVIDERS.ollama.defaultUrl, key: '', model: 'llama3.2' },
     custom: { url: '', key: '', model: '' }
